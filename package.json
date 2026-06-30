@@ -8,7 +8,8 @@
     "build": "vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "emulator": "firebase emulators:start --only firestore"
+    "emulator": "npx firebase emulators:start --only firestore",
+    "deploy": "npm run build && npx firebase deploy"
   },
   "dependencies": {
     "firebase": "^12.15.0",
@@ -20,6 +21,7 @@
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.2",
+    "firebase-tools": "^15.22.3",
     "oxlint": "^1.69.0",
     "vite": "^8.1.0"
   }
