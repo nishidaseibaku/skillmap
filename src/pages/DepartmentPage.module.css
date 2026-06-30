@@ -1,0 +1,135 @@
+.page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 32px 24px;
+}
+
+.loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 50vh;
+  color: #6060a0;
+  font-size: 18px;
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.title {
+  font-size: 36px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #f1c40f, #e67e22, #9b59b6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+  letter-spacing: 4px;
+}
+
+.subtitle {
+  color: #6060a0;
+  margin: 8px 0 0;
+  font-size: 14px;
+  letter-spacing: 3px;
+}
+
+.department {
+  margin-bottom: 40px;
+}
+
+.deptName {
+  font-size: 20px;
+  font-weight: 700;
+  color: #a0a0d8;
+  margin: 0 0 20px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  letter-spacing: 2px;
+}
+
+.deptIcon {
+  font-size: 18px;
+}
+
+.teamGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+
+.teamCard {
+  background: linear-gradient(135deg, #1e1e35, #2a2a45);
+  border: 1px solid #3a3a5e;
+  border-radius: 12px;
+  padding: 20px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s ease;
+  display: block;
+}
+
+.teamCard:hover {
+  border-color: #6a6aae;
+  transform: translateY(-4px);
+  box-shadow: 0 8px 32px rgba(74, 74, 180, 0.2);
+}
+
+.teamHeader {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.teamIcon {
+  font-size: 20px;
+}
+
+.teamName {
+  font-size: 16px;
+  font-weight: 700;
+  color: #c0c0e8;
+}
+
+.teamStats {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #f1c40f;
+}
+
+.statLabel {
+  font-size: 10px;
+  color: #6060a0;
+  letter-spacing: 1px;
+}
+
+.memberPreviews {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.memberChip {
+  background: rgba(74, 74, 180, 0.2);
+  border: 1px solid #3a3a6e;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 11px;
+  color: #8080c0;
+}

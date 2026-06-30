@@ -1,0 +1,54 @@
+.tree {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.majorGroup {
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid #2a2a4e;
+  border-radius: 12px;
+  padding: 16px 20px;
+}
+
+.majorLabel {
+  font-size: 14px;
+  font-weight: 700;
+  color: #a0a0d8;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin: 0 0 16px 0;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #2a2a4e;
+}
+
+.minorGroups {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.minorGroup {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.minorLabel {
+  font-size: 11px;
+  color: #6060a0;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  padding: 8px 4px;
+  border-right: 1px solid #2a2a4e;
+  letter-spacing: 2px;
+  min-width: 24px;
+  text-align: center;
+}
+
+.skillRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}

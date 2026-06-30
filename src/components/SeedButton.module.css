@@ -1,0 +1,35 @@
+.btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #1e1e35;
+  border: 1px solid #3a3a5e;
+  border-radius: 8px;
+  padding: 8px 14px;
+  color: #6060a0;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  z-index: 999;
+  transition: all 0.2s;
+}
+
+.btn:hover {
+  border-color: #5a5a9e;
+  color: #a0a0d8;
+}
+
+.loading {
+  color: #f1c40f;
+  border-color: #f1c40f;
+}
+
+.done {
+  color: #2ecc71;
+  border-color: #2ecc71;
+}
+
+.error {
+  color: #e74c3c;
+  border-color: #e74c3c;
+}

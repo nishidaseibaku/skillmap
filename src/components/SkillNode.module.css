@@ -1,0 +1,95 @@
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.node {
+  width: 120px;
+  border: 1px solid #3a3a5e;
+  border-radius: 8px;
+  padding: 10px 8px 8px;
+  text-align: center;
+  transition: all 0.2s ease;
+  background-color: #2a2a3e;
+  user-select: none;
+}
+
+.node:hover {
+  border-color: #6a6a9e;
+  transform: translateY(-2px);
+}
+
+.active {
+  border-color: #5a5a8e;
+}
+
+.orbs {
+  display: flex;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.orb {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 1px solid #4a4a7e;
+  display: block;
+  transition: all 0.2s;
+}
+
+.orbFilled {
+  filter: brightness(1.5);
+  border-color: transparent;
+}
+
+.skillName {
+  font-size: 11px;
+  color: #c8c8e8;
+  font-weight: 600;
+  margin-bottom: 4px;
+  line-height: 1.3;
+}
+
+.levelLabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.picker {
+  position: absolute;
+  top: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a2e;
+  border: 1px solid #3a3a5e;
+  border-radius: 8px;
+  padding: 8px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 100px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.pickBtn {
+  background: #2a2a3e;
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 11px;
+  transition: background 0.15s;
+  font-family: inherit;
+}
+
+.pickBtn:hover {
+  background: #3a3a5e;
+}
+
+.pickBtnActive {
+  background: #3a3a5e;
+}
