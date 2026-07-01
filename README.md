@@ -34,12 +34,12 @@ graph TB
 
         SRC -->|"npm run build (Vite)"| DIST
         FBJS -->|"Firestore SDK 初期化"| SRC
-    end
 
-    subgraph TOOLS["CLIツール"]
-        GIT["git"]
-        GH["gh (GitHub CLI)"]
-        FB["npx firebase (firebase-tools)"]
+        subgraph TOOLS["CLIツール"]
+            GIT["git"]
+            GH["gh (GitHub CLI)"]
+            FB["npx firebase (firebase-tools)"]
+        end
     end
 
     subgraph GITHUB["GitHub"]
@@ -56,12 +56,10 @@ graph TB
         APP["Webアプリ"]
     end
 
-    LOCAL -->|"git push"| GIT
-    GIT --> REPO
+    GIT -->|"git push"| REPO
     GH -->|"認証管理"| REPO
 
-    DIST -->|"npx firebase deploy"| FB
-    FB --> HOSTING
+    FB -->|"npx firebase deploy"| HOSTING
     FB --> FBRULES
 
     HOSTING -->|"配信"| APP
@@ -127,6 +125,7 @@ CI トークンの発行: `npx firebase login:ci`
 
 | バージョン | 日付 | 変更内容 |
 |-----------|------|---------|
+| v0.3.1 | 2026-07-01 | アーキテクチャ図のCLIツールをローカル環境ブロック内に移動 |
 | v0.3 | 2026-07-01 | データ層を localStorage から Firestore に移行、firebase.js を本番設定に更新 |
 | v0.2 | 2026-07-01 | Firebase Hosting へのデプロイ、GitHub リポジトリ公開 |
 | v0.1 | 2026-07-01 | MVP 初回リリース（React + Vite + RPGスキルツリーUI） |
