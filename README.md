@@ -14,18 +14,26 @@ https://skill-map-27189.web.app
 - RPGスキルツリー風UI（レベルに応じてノードが発光）
 - スキル・メンバーのCRUD管理画面
 
+## 技術スタック
+
+| 区分 | 技術 |
+|------|------|
+| フロントエンド | React + Vite |
+| データ | Firebase Firestore |
+| ホスティング | Firebase Hosting |
+| コード管理 | GitHub |
+
 ## アーキテクチャ
 
 ```mermaid
 graph TB
-    subgraph LOCAL["ローカル環境 (C:\\Users\\suenaga\\Desktop\\app)"]
+    subgraph LOCAL["ローカル環境"]
         SRC["src/ (Reactソースコード)"]
         DIST["dist/ (ビルド成果物)"]
-        LS["localStore.js (localStorage)"]
-        ENV["firebase.js (接続設定)"]
+        FBJS["firebase.js (接続設定)"]
 
         SRC -->|"npm run build (Vite)"| DIST
-        SRC <-->|"開発中のデータ読み書き"| LS
+        FBJS -->|"Firestore SDK 初期化"| SRC
     end
 
     subgraph TOOLS["CLIツール"]
@@ -52,32 +60,42 @@ graph TB
     GIT --> REPO
     GH -->|"認証管理"| REPO
 
-    DIST -->|"firebase deploy"| FB
+    DIST -->|"npx firebase deploy"| FB
     FB --> HOSTING
     FB --> FBRULES
 
     HOSTING -->|"配信"| APP
-    APP <-->|"Firestore SDK (将来)"| FS
+    APP <-->|"Firestore SDK (リアルタイム同期)"| FS
     FBRULES -->|"アクセス制御"| FS
-
-    ENV -.->|"将来: firebaseConfig差し替え後"| FS
-    LS -.->|"将来: Firestore移行後に置き換え"| FS
 ```
 
-**現状のデータフロー**
-- ローカル開発中はデータを `localStorage` に保存
-- `npm run build` → `npx firebase deploy` で Hosting にデプロイ
-- 将来 `src/firebase.js` の設定を本番プロジェクトに向け直すと Firestore に移行
+## デプロイシーケンス
 
-## 技術スタック
+コードに変更を加えたあと、本番環境へ反映するまでの手順。
 
-| 区分 | 技術 |
-|------|------|
-| フロントエンド | React + Vite |
-| データ（ローカル） | localStorage |
-| データ（本番予定） | Firebase Firestore |
-| ホスティング | Firebase Hosting |
-| コード管理 | GitHub |
+```mermaid
+sequenceDiagram
+    participant Dev as 開発者
+    participant Local as ローカル環境
+    participant GitHub as GitHub
+    participant Hosting as Firebase Hosting
+    participant Firestore as Firestore
+
+    Dev->>Local: コードを編集
+    Dev->>Local: npm run build
+    Local-->>Dev: dist/ 生成
+
+    Dev->>GitHub: git add / commit / push
+    GitHub-->>Dev: プッシュ完了
+
+    Dev->>Local: npx firebase deploy --token "..."
+    Local->>Hosting: dist/ をアップロード
+    Local->>Firestore: firestore.rules をアップロード
+    Hosting-->>Dev: リリース完了
+    Firestore-->>Dev: ルール適用完了
+
+    Note over Hosting: https://skill-map-27189.web.app<br/>に即時反映
+```
 
 ## セットアップ
 
@@ -86,11 +104,29 @@ npm install
 npm run dev
 ```
 
-## デプロイ
+## デプロイ手順
 
 ```bash
+# 1. ビルド
 npm run build
+
+# 2. GitHubにプッシュ
+git add .
+git commit -m "変更内容"
+git push
+
+# 3. Firebase にデプロイ
 npx firebase deploy --token "YOUR_CI_TOKEN"
 ```
 
 CI トークンの発行: `npx firebase login:ci`
+
+---
+
+## バージョン履歴
+
+| バージョン | 日付 | 変更内容 |
+|-----------|------|---------|
+| v0.3 | 2026-07-01 | データ層を localStorage から Firestore に移行、firebase.js を本番設定に更新 |
+| v0.2 | 2026-07-01 | Firebase Hosting へのデプロイ、GitHub リポジトリ公開 |
+| v0.1 | 2026-07-01 | MVP 初回リリース（React + Vite + RPGスキルツリーUI） |
