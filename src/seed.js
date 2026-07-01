@@ -1,4 +1,4 @@
-import { setDoc } from './localStore';
+import { setDocument } from './hooks/useFirestore';
 
 const seedData = {
   departments: [
@@ -82,11 +82,11 @@ const seedData = {
 
 export async function seedDatabase() {
   for (const dept of seedData.departments) {
-    setDoc('departments', dept.id, { name: dept.name });
+    await setDocument('departments', dept.id, { name: dept.name });
   }
 
   for (const team of seedData.teams) {
-    setDoc('teams', team.id, {
+    await setDocument('teams', team.id, {
       name: team.name,
       departmentId: team.departmentId,
       skills: seedData.skills[team.id] || [],
@@ -96,7 +96,7 @@ export async function seedDatabase() {
   for (const teamMembers of Object.values(seedData.members)) {
     for (const member of teamMembers) {
       const { id, ...data } = member;
-      setDoc('members', id, data);
+      await setDocument('members', id, data);
     }
   }
 }

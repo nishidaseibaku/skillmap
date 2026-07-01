@@ -1,17 +1,18 @@
 import { useState, useEffect } from 'react';
 import {
-  onCollectionSnapshot, onDocSnapshot,
+  collection, doc, onSnapshot,
   setDoc as _setDoc, updateDoc as _updateDoc,
   deleteDoc as _deleteDoc, addDoc as _addDoc,
-} from '../localStore';
+} from 'firebase/firestore';
+import { db } from '../firebase';
 
 export function useCollection(col) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const unsub = onCollectionSnapshot(col, (docs) => {
-      setData(docs);
+    const unsub = onSnapshot(collection(db, col), (snap) => {
+      setData(snap.docs.map(d => ({ id: d.id, ...d.data() })));
       setLoading(false);
     });
     return unsub;
@@ -26,8 +27,8 @@ export function useDocument(col, id) {
 
   useEffect(() => {
     if (!id) { setLoading(false); return; }
-    const unsub = onDocSnapshot(col, id, (doc) => {
-      setData(doc);
+    const unsub = onSnapshot(doc(db, col, id), (snap) => {
+      setData(snap.exists() ? { id: snap.id, ...snap.data() } : null);
       setLoading(false);
     });
     return unsub;
@@ -37,17 +38,17 @@ export function useDocument(col, id) {
 }
 
 export function updateDocument(col, id, data) {
-  _updateDoc(col, id, data);
+  return _updateDoc(doc(db, col, id), data);
 }
 
 export function setDocument(col, id, data) {
-  _setDoc(col, id, data);
+  return _setDoc(doc(db, col, id), data);
 }
 
 export function deleteDocument(col, id) {
-  _deleteDoc(col, id);
+  return _deleteDoc(doc(db, col, id));
 }
 
 export function addDocument(col, data) {
-  return _addDoc(col, data);
+  return _addDoc(collection(db, col), data);
 }
