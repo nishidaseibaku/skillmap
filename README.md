@@ -13,6 +13,8 @@ https://skill-map-27189.web.app
 - メンバーごとのスキルレベル管理（0〜4の4段階）
 - RPGスキルツリー風UI（レベルに応じてノードが発光）
 - スキル・メンバーのCRUD管理画面
+- **Microsoft SSO ログイン**（社内テナント限定）
+- **社員マスタ連携**（master-manager API から社員情報を取込・同期）
 
 ## 技術スタック
 
@@ -20,8 +22,20 @@ https://skill-map-27189.web.app
 |------|------|
 | フロントエンド | React + Vite |
 | データ | Firebase Firestore |
+| 認証 | Firebase Authentication（Microsoft SSO / Entra） |
+| サーバー処理 | Cloud Functions（asia-northeast1） |
+| 外部連携 | master-manager 配信API（社員マスタ） |
 | ホスティング | Firebase Hosting |
 | コード管理 | GitHub |
+
+## マスタ連携の設計原則
+
+master-manager の仕様に準拠し、以下を厳守する。
+
+- **社員キー（id）は不変** — Firestore の `members` ドキュメントIDに社員のUUIDを使用
+- **氏名・メール等の属性はマスタが正** — 同期のたびに上書きし、ローカルはキャッシュのみ
+- **APIキーはサーバー側のみ** — Cloud Functions の Secret に格納し、クライアントには一切出さない
+- **配信APIはサーバー経由でのみ呼ぶ** — フロントは Callable Function を介して間接的に取得
 
 ## アーキテクチャ
 
@@ -50,6 +64,13 @@ graph TB
         HOSTING["Firebase Hosting\nskill-map-27189.web.app"]
         FS["Firestore Database"]
         FBRULES["Firestore Rules"]
+        AUTH["Firebase Auth\n(Microsoft SSO)"]
+        FUNC["Cloud Functions\n(master-manager プロキシ)"]
+    end
+
+    subgraph EXTERNAL["外部サービス"]
+        ENTRA["Microsoft Entra ID"]
+        MM["master-manager API\n(社員マスタ)"]
     end
 
     subgraph BROWSER["ブラウザ (エンドユーザー)"]
@@ -61,10 +82,15 @@ graph TB
 
     FB -->|"npx firebase deploy"| HOSTING
     FB --> FBRULES
+    FB -->|"deploy functions"| FUNC
 
     HOSTING -->|"配信"| APP
     APP <-->|"Firestore SDK (リアルタイム同期)"| FS
-    FBRULES -->|"アクセス制御"| FS
+    APP <-->|"ログイン"| AUTH
+    AUTH <-->|"OIDC"| ENTRA
+    APP -->|"Callable"| FUNC
+    FUNC -->|"IDトークン + X-API-Key"| MM
+    FBRULES -->|"アクセス制御 (認証必須)"| FS
 ```
 
 ## デプロイシーケンス
@@ -119,12 +145,46 @@ npx firebase deploy --token "YOUR_CI_TOKEN"
 
 CI トークンの発行: `npx firebase login:ci`
 
+## 初期セットアップ（SSO / マスタ連携）
+
+初回のみ必要な手動作業。
+
+### 1. Firebase を Blaze プランに変更
+Cloud Functions の利用には従量課金（Blaze）プランが必須。
+Firebase コンソール → 「アップグレード」から変更する。
+
+### 2. Microsoft SSO プロバイダを有効化
+1. Firebase コンソール → Authentication → Sign-in method → Microsoft を有効化
+2. 表示されるリダイレクトURI（`https://skill-map-27189.firebaseapp.com/__/auth/handler`）を控える
+3. master-manager 管理者に上記URIの登録を依頼し、アプリケーションID／シークレットを受領
+4. 受け取ったID／シークレットをコンソールの Microsoft プロバイダ設定に登録
+
+### 3. master-manager API キーを Secret に登録
+```bash
+npx firebase functions:secrets:set MASTER_MANAGER_API_KEY
+# プロンプトに mm_xxxx... を貼り付け
+```
+
+### 4. Cloud Functions をデプロイ
+```bash
+npx firebase deploy --only functions
+```
+
+### 5. サービスアカウントの認可
+master-manager 管理者に、Functions のサービスアカウント
+（`skill-map-27189@appspot.gserviceaccount.com`）への呼び出し許可付与を依頼する。
+
+### 6. 社員の取込
+アプリにログイン後、画面右下の「🔄 マスタ同期」で社員を取り込み、
+各チームの管理画面から社員をチームに割り当てる。
+
 ---
 
 ## バージョン履歴
 
 | バージョン | 日付 | 変更内容 |
 |-----------|------|---------|
+| v0.4 | 2026-07-10 | Microsoft SSO ログインと社員マスタ連携（Cloud Functions プロキシ）を追加、Firestoreルールを認証必須に強化、サンプルデータを廃止 |
 | v0.3.1 | 2026-07-01 | アーキテクチャ図のCLIツールをローカル環境ブロック内に移動 |
 | v0.3 | 2026-07-01 | データ層を localStorage から Firestore に移行、firebase.js を本番設定に更新 |
 | v0.2 | 2026-07-01 | Firebase Hosting へのデプロイ、GitHub リポジトリ公開 |

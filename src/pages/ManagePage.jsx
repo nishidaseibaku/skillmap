@@ -1,8 +1,7 @@
 import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import {
-  useDocument, useCollection,
-  updateDocument, addDocument, deleteDocument
+  useDocument, useCollection, updateDocument
 } from '../hooks/useFirestore';
 import styles from './ManagePage.module.css';
 
@@ -38,7 +37,7 @@ export default function ManagePage() {
         <SkillManager team={team} />
       )}
       {tab === 'members' && (
-        <MemberManager teamId={teamId} members={members} />
+        <MemberManager teamId={teamId} members={members} allMembers={allMembers} />
       )}
     </div>
   );
@@ -145,78 +144,72 @@ function SkillManager({ team }) {
   );
 }
 
-function MemberManager({ teamId, members }) {
-  const [adding, setAdding] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [editingId, setEditingId] = useState(null);
-  const [editName, setEditName] = useState('');
+function MemberManager({ teamId, members, allMembers }) {
+  const [picking, setPicking] = useState(false);
+  const [selectedId, setSelectedId] = useState('');
 
-  const addMember = async () => {
-    if (!newName.trim()) return;
-    await addDocument('members', { name: newName.trim(), teamId, skillLevels: {} });
-    setNewName('');
-    setAdding(false);
+  // どのチームにも属していない社員（マスタ取込後の未割当）
+  const unassigned = allMembers.filter(m => !m.teamId);
+
+  const assignMember = async () => {
+    if (!selectedId) return;
+    await updateDocument('members', selectedId, { teamId });
+    setSelectedId('');
+    setPicking(false);
   };
 
-  const saveMember = async (id) => {
-    await updateDocument('members', id, { name: editName });
-    setEditingId(null);
-  };
-
-  const deleteMember = async (id) => {
-    if (!confirm('このメンバーを削除しますか？')) return;
-    await deleteDocument('members', id);
+  const removeMember = async (id) => {
+    if (!confirm('このメンバーをチームから外しますか？（社員データは残ります）')) return;
+    await updateDocument('members', id, { teamId: null });
   };
 
   return (
     <div className={styles.section}>
       <div className={styles.sectionHeader}>
         <h2 className={styles.sectionTitle}>メンバー一覧</h2>
-        <button className={styles.addBtn} onClick={() => setAdding(v => !v)}>
-          {adding ? 'キャンセル' : '+ メンバーを追加'}
+        <button className={styles.addBtn} onClick={() => setPicking(v => !v)}>
+          {picking ? 'キャンセル' : '+ 社員をチームに追加'}
         </button>
       </div>
 
-      {adding && (
+      {picking && (
         <div className={styles.addForm}>
-          <input
+          <select
             className={styles.input}
-            placeholder="氏名 *"
-            value={newName}
-            onChange={e => setNewName(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && addMember()}
-          />
-          <button className={styles.saveBtn} onClick={addMember}>追加</button>
+            value={selectedId}
+            onChange={e => setSelectedId(e.target.value)}
+          >
+            <option value="">未割当の社員を選択...</option>
+            {unassigned.map(m => (
+              <option key={m.id} value={m.id}>
+                {m.name}{m.deptCode ? `（${m.deptCode}）` : ''}
+              </option>
+            ))}
+          </select>
+          <button className={styles.saveBtn} onClick={assignMember} disabled={!selectedId}>追加</button>
         </div>
+      )}
+
+      {picking && unassigned.length === 0 && (
+        <p className={styles.hint}>未割当の社員がいません。右下の「マスタ同期」で社員を取り込んでください。</p>
       )}
 
       <table className={styles.table}>
         <thead>
           <tr>
             <th>氏名</th>
+            <th>メール</th>
             <th>操作</th>
           </tr>
         </thead>
         <tbody>
           {members.map(m => (
             <tr key={m.id}>
-              {editingId === m.id ? (
-                <>
-                  <td><input className={styles.input} value={editName} onChange={e => setEditName(e.target.value)} /></td>
-                  <td>
-                    <button className={styles.saveBtn} onClick={() => saveMember(m.id)}>保存</button>
-                    <button className={styles.cancelBtn} onClick={() => setEditingId(null)}>キャンセル</button>
-                  </td>
-                </>
-              ) : (
-                <>
-                  <td className={styles.skillNameCell}>{m.name}</td>
-                  <td>
-                    <button className={styles.editBtn} onClick={() => { setEditingId(m.id); setEditName(m.name); }}>編集</button>
-                    <button className={styles.deleteBtn} onClick={() => deleteMember(m.id)}>削除</button>
-                  </td>
-                </>
-              )}
+              <td className={styles.skillNameCell}>{m.name}</td>
+              <td className={styles.categoryCell}>{m.email || '—'}</td>
+              <td>
+                <button className={styles.deleteBtn} onClick={() => removeMember(m.id)}>チームから外す</button>
+              </td>
             </tr>
           ))}
         </tbody>

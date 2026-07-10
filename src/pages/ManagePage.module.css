@@ -198,3 +198,9 @@
 }
 
 .deleteBtn:hover { background: #3a1a1a; }
+
+.hint {
+  color: #8a8ab0;
+  font-size: 13px;
+  margin: 8px 0 0;
+}

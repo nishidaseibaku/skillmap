@@ -1,5 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
+import { getAuth, OAuthProvider, signInWithPopup, signOut } from 'firebase/auth';
+import { getFunctions } from 'firebase/functions';
 
 const firebaseConfig = {
   apiKey: 'AIzaSyDkky6ZH9EQVHl5pqMavmfP8F2ChBK6ry4',
@@ -12,3 +14,27 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+export const auth = getAuth(app);
+// Cloud Functions は asia-northeast1 にデプロイしている
+export const functions = getFunctions(app, 'asia-northeast1');
+
+// 社内テナントに限定した Microsoft SSO
+const TENANT_ID = '208aac18-8247-4354-a8bf-617d2198ba7c';
+
+export async function signInWithMicrosoft() {
+  const provider = new OAuthProvider('microsoft.com');
+  provider.setCustomParameters({
+    tenant: TENANT_ID,
+    prompt: 'select_account',
+  });
+  return signInWithPopup(auth, provider);
+}
+
+export function signOutUser() {
+  return signOut(auth);
+}
+
+/** ログイン中ユーザーの Entra オブジェクトID（自システムのユーザーキー） */
+export function getEntraObjectId(user) {
+  return user?.providerData?.find((p) => p.providerId === 'microsoft.com')?.uid || null;
+}

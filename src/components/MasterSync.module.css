@@ -1,7 +1,14 @@
-.btn {
+.wrapper {
   position: fixed;
   bottom: 20px;
   right: 20px;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.btn {
   background: #1e1e35;
   border: 1px solid #3a3a5e;
   border-radius: 8px;
@@ -10,13 +17,16 @@
   cursor: pointer;
   font-size: 12px;
   font-family: inherit;
-  z-index: 999;
   transition: all 0.2s;
 }
 
-.btn:hover {
+.btn:hover:not(:disabled) {
   border-color: #5a5a9e;
   color: #a0a0d8;
+}
+
+.btn:disabled {
+  cursor: default;
 }
 
 .loading {
@@ -32,4 +42,14 @@
 .error {
   color: #e74c3c;
   border-color: #e74c3c;
+}
+
+.msg {
+  background: rgba(30, 30, 53, 0.95);
+  border: 1px solid #3a3a5e;
+  border-radius: 6px;
+  padding: 6px 10px;
+  color: #a0a0d8;
+  font-size: 12px;
+  max-width: 260px;
 }
