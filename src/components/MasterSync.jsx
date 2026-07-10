@@ -1,60 +1,64 @@
 import { useState } from 'react';
 import { fetchEmployees } from '../api/masterApi';
+import { resolveDeptCodeNames, buildOrgPlan } from '../api/orgSync';
 import { useCollection, setDocument, deleteDocument } from '../hooks/useFirestore';
 import styles from './MasterSync.module.css';
 
 /**
- * 社員マスタAPI から在籍社員を取り込み、members コレクションへ反映する。
+ * 社員マスタAPI から在籍社員を取り込み、部門・チーム・メンバーを自動生成する。
  *
  * 設計方針（master-manager の原則に準拠）:
  *  - ドキュメントIDは社員の不変キー(id)を使用
- *  - 氏名/メール等の属性はマスタを正とし、同期のたびに上書き（ローカルにはキャッシュのみ）
- *  - teamId / skillLevels はこのアプリ固有のデータなので、再同期でも保持
+ *  - 氏名/メール等の属性はマスタを正とし、同期のたびに上書き
+ *  - チームは社員の deptCode ごとに自動生成し、社員を自動割当
+ *  - skills（チーム）と skillLevels（社員）はアプリ固有データなので保持
  *  - status=deleted の社員はローカルからも削除
  */
 export default function MasterSync() {
   const { data: members } = useCollection('members');
+  const { data: teams } = useCollection('teams');
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [message, setMessage] = useState('');
 
   const handleSync = async () => {
-    if (!confirm('社員マスタから最新の社員情報を取り込みますか？')) return;
+    if (!confirm('社員マスタから最新の社員情報を取り込み、部門・チームを再構成しますか？')) return;
     setStatus('loading');
     setMessage('マスタAPIに問い合わせ中...');
     try {
       const { employees } = await fetchEmployees({ includeInactive: false });
 
-      const existingById = new Map(members.map((m) => [m.id, m]));
-      let upserted = 0;
-      let removed = 0;
+      setMessage('部門マスタを照合中...');
+      const deptNames = await resolveDeptCodeNames(employees);
 
-      for (const emp of employees) {
-        if (emp.status === 'deleted') {
-          if (existingById.has(emp.id)) {
-            await deleteDocument('members', emp.id);
-            removed++;
-          }
-          continue;
-        }
-        const prev = existingById.get(emp.id);
-        await setDocument('members', emp.id, {
-          // マスタ由来（毎回上書き）
-          name: emp.displayName,
-          email: emp.email || null,
-          userPrincipalName: emp.userPrincipalName || null,
-          deptCode: emp.custom?.deptCode || null,
-          custom: emp.custom || {},
-          status: emp.status,
-          // アプリ固有（同期でも保持）
-          teamId: prev?.teamId ?? null,
-          skillLevels: prev?.skillLevels ?? {},
-          syncedAt: new Date().toISOString(),
-        });
-        upserted++;
+      const plan = buildOrgPlan({
+        employees,
+        deptNames,
+        existingTeams: teams,
+        existingMembers: members,
+      });
+
+      // 部門
+      await setDocument('departments', plan.department.id, { name: plan.department.name });
+
+      // チーム（deptCode ごと・skills 保持）
+      for (const team of plan.teams) {
+        const { id, ...data } = team;
+        await setDocument('teams', id, data);
+      }
+
+      // メンバー（自動割当・skillLevels 保持）
+      for (const { id, data } of plan.memberUpserts) {
+        await setDocument('members', id, data);
+      }
+      for (const id of plan.memberDeletes) {
+        await deleteDocument('members', id);
       }
 
       setStatus('done');
-      setMessage(`同期完了：${upserted}名を取込${removed ? `／${removed}名を削除` : ''}`);
+      setMessage(
+        `同期完了：${plan.memberUpserts.length}名 / ${plan.teams.length}チーム` +
+        `${plan.memberDeletes.length ? `／${plan.memberDeletes.length}名を削除` : ''}`,
+      );
       setTimeout(() => setStatus('idle'), 4000);
     } catch (e) {
       console.error(e);
