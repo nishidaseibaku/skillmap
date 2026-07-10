@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { fetchEmployees } from '../api/masterApi';
-import { resolveDeptCodeNames, buildOrgPlan } from '../api/orgSync';
+import { fetchOrgMasters, buildOrgPlan } from '../api/orgSync';
 import { useCollection, setDocument, deleteDocument } from '../hooks/useFirestore';
 import styles from './MasterSync.module.css';
 
 /**
- * 社員マスタAPI から在籍社員を取り込み、部門・チーム・メンバーを自動生成する。
+ * 社員マスタAPI から在籍社員（表示ON）を取り込み、部門・チーム・メンバーを再構成する。
  *
- * 設計方針（master-manager の原則に準拠）:
- *  - ドキュメントIDは社員の不変キー(id)を使用
- *  - 氏名/メール等の属性はマスタを正とし、同期のたびに上書き
- *  - チームは社員の deptCode ごとに自動生成し、社員を自動割当
- *  - skills（チーム）と skillLevels（社員）はアプリ固有データなので保持
- *  - status=deleted の社員はローカルからも削除
+ * 連携契約（master-manager）:
+ *  - 部門 = departments マスタ / チーム = department-teams マスタ / 個人 = /employees
+ *  - 社員の custom.deptCode / custom.teamCode（マスタの code）で所属を決定
+ *  - チームの skills・社員の skillLevels はアプリ固有なので保持
+ *  - 表示OFFになった社員はローカルからも削除
  */
 export default function MasterSync() {
   const { data: members } = useCollection('members');
@@ -21,32 +20,33 @@ export default function MasterSync() {
   const [message, setMessage] = useState('');
 
   const handleSync = async () => {
-    if (!confirm('社員マスタから最新の社員情報を取り込み、部門・チームを再構成しますか？')) return;
+    if (!confirm('社員マスタから最新情報を取り込み、部門・チームを再構成しますか？')) return;
     setStatus('loading');
     setMessage('マスタAPIに問い合わせ中...');
     try {
-      const { employees } = await fetchEmployees({ includeInactive: false });
-
-      setMessage('部門マスタを照合中...');
-      const deptNames = await resolveDeptCodeNames(employees);
+      const [{ employees }, orgMasters] = await Promise.all([
+        fetchEmployees({ includeInactive: false }),
+        fetchOrgMasters(),
+      ]);
 
       const plan = buildOrgPlan({
         employees,
-        deptNames,
+        deptItems: orgMasters.deptItems,
+        teamItems: orgMasters.teamItems,
         existingTeams: teams,
         existingMembers: members,
       });
 
-      // 部門
-      await setDocument('departments', plan.department.id, { name: plan.department.name });
+      setMessage('Firestore に反映中...');
 
-      // チーム（deptCode ごと・skills 保持）
+      for (const dept of plan.departments) {
+        const { id, ...data } = dept;
+        await setDocument('departments', id, data);
+      }
       for (const team of plan.teams) {
         const { id, ...data } = team;
         await setDocument('teams', id, data);
       }
-
-      // メンバー（自動割当・skillLevels 保持）
       for (const { id, data } of plan.memberUpserts) {
         await setDocument('members', id, data);
       }
@@ -56,15 +56,16 @@ export default function MasterSync() {
 
       setStatus('done');
       setMessage(
-        `同期完了：${plan.memberUpserts.length}名 / ${plan.teams.length}チーム` +
+        `同期完了：${plan.memberUpserts.length}名 / ` +
+        `${plan.departments.length}部門 / ${plan.teams.length}チーム` +
         `${plan.memberDeletes.length ? `／${plan.memberDeletes.length}名を削除` : ''}`,
       );
-      setTimeout(() => setStatus('idle'), 4000);
+      setTimeout(() => setStatus('idle'), 5000);
     } catch (e) {
       console.error(e);
       setStatus('error');
       setMessage(e?.message || '同期に失敗しました');
-      setTimeout(() => setStatus('idle'), 5000);
+      setTimeout(() => setStatus('idle'), 6000);
     }
   };
 
