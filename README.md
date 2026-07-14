@@ -37,7 +37,7 @@ master-manager の仕様に準拠し、以下を厳守する。
 - **氏名・メール等の属性はマスタが正** — 同期のたびに上書きし、ローカルはキャッシュのみ
 - **APIキーはサーバー側のみ** — Cloud Functions の Secret に格納し、クライアントには一切出さない
 - **配信APIはサーバー経由でのみ呼ぶ** — フロントは Callable Function を介して間接的に取得
-- **組織構成はマスタから自動生成** — 部門は `departments` マスタ、チームは `department-teams` マスタ（`parentDeptCode` で親部門に紐付け）から生成。社員は `custom.deptCode` / `custom.teamCode`（いずれもマスタの `code`）で自動割当。`teamCode` 未設定者は部門直属チーム（「〇〇部門（未分類）」）に収容。チームの `skills` と社員の `skillLevels` は同期しても保持。表示OFFになった社員はローカルからも削除
+- **組織構成はマスタが正** — 部門は `departments` マスタ、チームは `department-teams` マスタ（`parentDeptCode` で親部門に紐付け）から取得。社員は `custom.teamCode`（マスタの `code`）で所属チームに割当。`teamCode` 未設定の社員は「未所属」（擬似チームは作らない）。マスタに無い部門・チーム・表示OFF社員は同期時にローカルからも削除。チームの `skills` と社員の `skillLevels`（マスタに存在しないアプリ固有データ）は同期しても保持
 
 ## アーキテクチャ
 
@@ -187,6 +187,7 @@ master-manager 管理者に、Functions のサービスアカウント
 
 | バージョン | 日付 | 変更内容 |
 |-----------|------|---------|
+| v0.4.2 | 2026-07-10 | マスタを組織構成の唯一の正に統一（擬似チームを廃止し teamCode 未設定者は未所属、マスタに無い部門・チームは同期時に削除） |
 | v0.4.1 | 2026-07-10 | マスタ連携を実データ構造に整合（部門=departments／チーム=department-teams／社員=deptCode・teamCode で割当）、Cloud Functionsを本番デプロイ、認可をAPIキー単層に簡素化 |
 | v0.4 | 2026-07-10 | Microsoft SSO ログインと社員マスタ連携（Cloud Functions プロキシ）を追加、deptCode から部門・チームを自動生成・社員を自動割当、Firestoreルールを認証必須に強化、サンプルデータを廃止 |
 | v0.3.1 | 2026-07-01 | アーキテクチャ図のCLIツールをローカル環境ブロック内に移動 |

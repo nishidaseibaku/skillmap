@@ -12,10 +12,10 @@ import { fetchMasterItems } from './masterApi';
  *
  * アプリ側ドキュメントID:
  *  - departments/{dept_<code>}
- *  - teams/{team_<code>}                （チームマスタ由来）
- *  - teams/{team_dept_<code>}           （teamCode 未設定者の受け皿＝部門直属チーム）
+ *  - teams/{team_<code>}                （チームマスタ由来のみ）
  *  - members/{employee.id}              （社員の不変UUID）
  *
+ * teamCode が空の社員は「未所属」（teamId=null）。擬似チームは生成しない。
  * 保持するアプリ固有データ: チームの skills、社員の skillLevels
  */
 
@@ -50,6 +50,7 @@ export function buildOrgPlan({
   employees,
   deptItems = [],
   teamItems = [],
+  existingDepartments = [],
   existingTeams = [],
   existingMembers = [],
 }) {
@@ -58,26 +59,20 @@ export function buildOrgPlan({
 
   const deptIdOf = (code) => `dept_${code}`;
   const teamIdOf = (code) => `team_${code}`;
-  const catchAllTeamIdOf = (deptCode) => `team_dept_${deptCode}`;
 
   // --- 部門 ---
-  const deptNameByCode = new Map();
   const departments = [];
   for (const it of deptItems) {
     const code = it?.values?.code != null ? String(it.values.code) : null;
     if (!code) continue;
-    const name = it.values.name || code;
-    deptNameByCode.set(code, name);
-    departments.push({ id: deptIdOf(code), name });
+    departments.push({ id: deptIdOf(code), name: it.values.name || code });
   }
 
-  // --- チーム（マスタ由来） ---
+  // --- チーム（マスタ由来のみ） ---
   const teams = [];
-  const teamCodeSet = new Set();
   for (const it of teamItems) {
     const code = it?.values?.code != null ? String(it.values.code) : null;
     if (!code) continue;
-    teamCodeSet.add(code);
     const parent = it.values.parentDeptCode != null ? String(it.values.parentDeptCode) : null;
     const id = teamIdOf(code);
     teams.push({
@@ -87,22 +82,6 @@ export function buildOrgPlan({
       skills: teamsById.get(id)?.skills ?? [], // スキル定義を保持
     });
   }
-
-  // teamCode 未設定者の受け皿（部門直属チーム）を必要に応じて生成
-  const catchAll = new Map(); // deptCode -> team doc
-
-  const ensureCatchAll = (deptCode) => {
-    if (catchAll.has(deptCode)) return catchAll.get(deptCode);
-    const id = catchAllTeamIdOf(deptCode);
-    const doc = {
-      id,
-      name: `${deptNameByCode.get(deptCode) || deptCode}（未分類）`,
-      departmentId: deptIdOf(deptCode),
-      skills: teamsById.get(id)?.skills ?? [],
-    };
-    catchAll.set(deptCode, doc);
-    return doc;
-  };
 
   // --- 社員 ---
   const memberUpserts = [];
@@ -114,19 +93,11 @@ export function buildOrgPlan({
 
     const deptCode = emp?.custom?.[DEPT_KEY] ? String(emp.custom[DEPT_KEY]) : null;
     const teamCode = emp?.custom?.[TEAM_KEY] ? String(emp.custom[TEAM_KEY]) : null;
-    const prev = membersById.get(emp.id);
 
-    let teamId;
-    if (teamCode && teamCodeSet.has(teamCode)) {
-      teamId = teamIdOf(teamCode); // 正式なチームに割当
-    } else if (teamCode) {
-      teamId = teamIdOf(teamCode); // マスタ未取込でも teamCode があれば仮割当
-    } else if (deptCode) {
-      ensureCatchAll(deptCode); // 部門直属チームへ
-      teamId = catchAllTeamIdOf(deptCode);
-    } else {
-      teamId = prev?.teamId ?? null; // 手動割当を尊重
-    }
+    // 所属はマスタの teamCode を正とする。空なら「未所属」。
+    // 擬似チームは作らない（チームは department-teams マスタ由来のみ）。
+    const teamId = teamCode ? teamIdOf(teamCode) : null;
+    const prev = membersById.get(emp.id);
 
     memberUpserts.push({
       id: emp.id,
@@ -150,10 +121,18 @@ export function buildOrgPlan({
     .map((m) => m.id)
     .filter((id) => !fetchedIds.has(id));
 
+  // 部門・チームもマスタを正とし、マスタに無いものは削除
+  const deptIds = new Set(departments.map((d) => d.id));
+  const teamIds = new Set(teams.map((t) => t.id));
+  const departmentDeletes = existingDepartments.map((d) => d.id).filter((id) => !deptIds.has(id));
+  const teamDeletes = existingTeams.map((t) => t.id).filter((id) => !teamIds.has(id));
+
   return {
     departments,
-    teams: [...teams, ...catchAll.values()],
+    teams,
     memberUpserts,
     memberDeletes,
+    departmentDeletes,
+    teamDeletes,
   };
 }

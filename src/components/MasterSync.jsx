@@ -16,6 +16,7 @@ import styles from './MasterSync.module.css';
 export default function MasterSync() {
   const { data: members } = useCollection('members');
   const { data: teams } = useCollection('teams');
+  const { data: departments } = useCollection('departments');
   const [status, setStatus] = useState('idle'); // idle | loading | done | error
   const [message, setMessage] = useState('');
 
@@ -33,6 +34,7 @@ export default function MasterSync() {
         employees,
         deptItems: orgMasters.deptItems,
         teamItems: orgMasters.teamItems,
+        existingDepartments: departments,
         existingTeams: teams,
         existingMembers: members,
       });
@@ -52,6 +54,12 @@ export default function MasterSync() {
       }
       for (const id of plan.memberDeletes) {
         await deleteDocument('members', id);
+      }
+      for (const id of plan.teamDeletes) {
+        await deleteDocument('teams', id);
+      }
+      for (const id of plan.departmentDeletes) {
+        await deleteDocument('departments', id);
       }
 
       setStatus('done');
