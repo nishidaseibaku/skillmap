@@ -28,6 +28,7 @@ https://skill-map-27189.web.app
 | 外部連携 | master-manager 配信API（社員マスタ） |
 | ホスティング | Firebase Hosting |
 | コード管理 | GitHub |
+| CI/CD | GitHub Actions（Workload Identity Federation でキーレス認証） |
 
 ## マスタ連携の設計原則
 
@@ -97,30 +98,34 @@ graph TB
 
 ## デプロイシーケンス
 
-コードに変更を加えたあと、本番環境へ反映するまでの手順。
+master へ push すると、GitHub Actions が Hosting と Firestore ルールを自動デプロイする。
+認証は Workload Identity Federation（GitHub OIDC）で行い、鍵は保存しない。
 
 ```mermaid
 sequenceDiagram
     participant Dev as 開発者
-    participant Local as ローカル環境
     participant GitHub as GitHub
+    participant Actions as GitHub Actions
+    participant WIF as Workload Identity<br/>Federation
     participant Hosting as Firebase Hosting
     participant Firestore as Firestore
 
-    Dev->>Local: コードを編集
-    Dev->>Local: npm run build
-    Local-->>Dev: dist/ 生成
+    Dev->>GitHub: git push (master)
+    GitHub->>Actions: ワークフロー起動 (deploy.yml)
+    Actions->>Actions: npm ci / npm run build
+    Actions->>WIF: OIDCトークンでSAになりすまし
+    WIF-->>Actions: 短命の認証情報
+    Actions->>Hosting: dist/ をデプロイ
+    Actions->>Firestore: firestore.rules をデプロイ
+    Hosting-->>Dev: 本番反映
 
-    Dev->>GitHub: git add / commit / push
-    GitHub-->>Dev: プッシュ完了
+    Note over Hosting: https://skill-map-27189.web.app
+```
 
-    Dev->>Local: npx firebase deploy --token "..."
-    Local->>Hosting: dist/ をアップロード
-    Local->>Firestore: firestore.rules をアップロード
-    Hosting-->>Dev: リリース完了
-    Firestore-->>Dev: ルール適用完了
+Functions は変更頻度が低く権限も強いため自動デプロイ対象外。変更時のみローカルから：
 
-    Note over Hosting: https://skill-map-27189.web.app<br/>に即時反映
+```bash
+npx firebase deploy --only functions
 ```
 
 ## セットアップ
@@ -132,20 +137,20 @@ npm run dev
 
 ## デプロイ手順
 
-```bash
-# 1. ビルド
-npm run build
+**通常はコードを master に push するだけで自動デプロイされる**（GitHub Actions）。
 
-# 2. GitHubにプッシュ
+```bash
 git add .
 git commit -m "変更内容"
-git push
-
-# 3. Firebase にデプロイ
-npx firebase deploy --token "YOUR_CI_TOKEN"
+git push   # → Actions が Hosting / Firestore ルールを自動デプロイ
 ```
 
-CI トークンの発行: `npx firebase login:ci`
+手動でデプロイする場合（Functions 含む全体）：
+
+```bash
+npm run build
+npx firebase deploy
+```
 
 ## 初期セットアップ（SSO / マスタ連携）
 
@@ -187,6 +192,7 @@ master-manager 管理者に、Functions のサービスアカウント
 
 | バージョン | 日付 | 変更内容 |
 |-----------|------|---------|
+| v0.5 | 2026-07-10 | GitHub Actions による CI/CD を追加（PRでlint/build、masterへのpushでHosting・Firestoreルールを自動デプロイ、Workload Identity Federationでキーレス認証） |
 | v0.4.2 | 2026-07-10 | マスタを組織構成の唯一の正に統一（擬似チームを廃止し teamCode 未設定者は未所属、マスタに無い部門・チームは同期時に削除） |
 | v0.4.1 | 2026-07-10 | マスタ連携を実データ構造に整合（部門=departments／チーム=department-teams／社員=deptCode・teamCode で割当）、Cloud Functionsを本番デプロイ、認可をAPIキー単層に簡素化 |
 | v0.4 | 2026-07-10 | Microsoft SSO ログインと社員マスタ連携（Cloud Functions プロキシ）を追加、deptCode から部門・チームを自動生成・社員を自動割当、Firestoreルールを認証必須に強化、サンプルデータを廃止 |

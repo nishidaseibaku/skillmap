@@ -1,0 +1,40 @@
+name: Deploy
+
+# master への push で Hosting と Firestore ルールを自動デプロイ。
+# 認証は Workload Identity Federation（GitHub OIDC）で行い、鍵は保存しない。
+# Functions は変更頻度が低く権限も強いため、意図的に自動デプロイ対象外
+# （必要時にローカルから `npx firebase deploy --only functions`）。
+on:
+  push:
+    branches:
+      - master
+
+permissions:
+  contents: read
+  id-token: write # OIDC トークン発行に必須
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+      - run: npm run build
+
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          project_id: skill-map-27189
+          workload_identity_provider: projects/216677182386/locations/global/workloadIdentityPools/github-pool/providers/github-provider
+          service_account: github-deployer@skill-map-27189.iam.gserviceaccount.com
+
+      - name: Deploy to Firebase
+        run: npx firebase-tools deploy --only hosting,firestore --project skill-map-27189 --non-interactive
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS: ${{ steps.auth.outputs.credentials_file_path }}
