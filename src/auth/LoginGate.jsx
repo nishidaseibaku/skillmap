@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from './AuthContext';
 import { signInWithMicrosoft } from '../firebase';
+import Icon from '../components/Icon';
 import styles from './LoginGate.module.css';
 
 export default function LoginGate({ children }) {
@@ -36,7 +37,7 @@ export default function LoginGate({ children }) {
     return (
       <div className={styles.wrapper}>
         <div className={styles.card}>
-          <div className={styles.logo}>⚔️</div>
+          <div className={styles.logo}><Icon name="spark" size={30} strokeWidth={1.6} /></div>
           <h1 className={styles.title}>スキルマップ</h1>
           <p className={styles.subtitle}>社内Microsoftアカウントでログインしてください</p>
           <button className={styles.loginBtn} onClick={handleLogin} disabled={signingIn}>

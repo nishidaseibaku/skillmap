@@ -3,33 +3,41 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: radial-gradient(circle at 50% 30%, #1a1a3e 0%, #0d0d1a 70%);
+  background: var(--bg);
 }
 
 .card {
-  background: rgba(26, 26, 46, 0.9);
-  border: 1px solid #4a90d9;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 48px 40px;
   text-align: center;
-  box-shadow: 0 0 40px rgba(74, 144, 217, 0.3);
+  box-shadow: 0 8px 32px rgba(30, 40, 60, 0.08);
   max-width: 360px;
 }
 
 .logo {
-  font-size: 56px;
-  margin-bottom: 8px;
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 12px;
+  border-radius: 14px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .title {
-  color: #f1c40f;
-  font-size: 28px;
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 700;
   margin: 0 0 8px;
-  letter-spacing: 2px;
+  letter-spacing: 1px;
 }
 
 .subtitle {
-  color: #9aa4c8;
+  color: var(--text-muted);
   font-size: 14px;
   margin: 0 0 28px;
 }
@@ -37,19 +45,20 @@
 .loginBtn {
   width: 100%;
   padding: 14px 20px;
-  background: linear-gradient(135deg, #4a90d9, #9b59b6);
+  background: var(--accent);
   color: #fff;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-size: 15px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.15s, box-shadow 0.15s;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
 }
 
 .loginBtn:hover:not(:disabled) {
+  background: #3550d8;
   transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(155, 89, 182, 0.5);
+  box-shadow: var(--shadow-hover);
 }
 
 .loginBtn:disabled {
@@ -58,7 +67,7 @@
 }
 
 .error {
-  color: #e74c3c;
+  color: var(--danger);
   font-size: 13px;
   margin-top: 16px;
 }
@@ -66,8 +75,8 @@
 .spinner {
   width: 40px;
   height: 40px;
-  border: 3px solid rgba(74, 144, 217, 0.3);
-  border-top-color: #4a90d9;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

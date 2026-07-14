@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import {
   useDocument, useCollection, updateDocument
 } from '../hooks/useFirestore';
+import Icon from '../components/Icon';
 import styles from './ManagePage.module.css';
 
 export default function ManagePage() {
@@ -18,7 +19,7 @@ export default function ManagePage() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <Link to={`/team/${teamId}`} className={styles.back}>← {team.name}</Link>
+        <Link to={`/team/${teamId}`} className={styles.back}><Icon name="back" size={16} /> {team.name}</Link>
         <h1 className={styles.title}>管理画面</h1>
       </div>
 

@@ -192,6 +192,7 @@ master-manager 管理者に、Functions のサービスアカウント
 
 | バージョン | 日付 | 変更内容 |
 |-----------|------|---------|
+| v0.6 | 2026-07-14 | UIをライトテーマに刷新（ダーク→明るいビジネス基調、色をCSS変数=デザイントークンに集約、ネオン発光を淡い影に変更）。絵文字を廃止し線画アイコン（Icon コンポーネント）に統一。スキルツリーのオーブ表現は遊び心として維持 |
 | v0.5 | 2026-07-10 | GitHub Actions による CI/CD を追加（PRでlint/build、masterへのpushでHosting・Firestoreルールを自動デプロイ、Workload Identity Federationでキーレス認証） |
 | v0.4.2 | 2026-07-10 | マスタを組織構成の唯一の正に統一（擬似チームを廃止し teamCode 未設定者は未所属、マスタに無い部門・チームは同期時に削除） |
 | v0.4.1 | 2026-07-10 | マスタ連携を実データ構造に整合（部門=departments／チーム=department-teams／社員=deptCode・teamCode で割当）、Cloud Functionsを本番デプロイ、認可をAPIキー単層に簡素化 |

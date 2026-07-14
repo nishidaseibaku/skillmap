@@ -9,50 +9,47 @@
   justify-content: center;
   align-items: center;
   height: 50vh;
-  color: #6060a0;
+  color: var(--text-muted);
   font-size: 18px;
 }
 
 .header {
   text-align: center;
-  margin-bottom: 48px;
-}
-
-.title {
-  font-size: 36px;
-  font-weight: 900;
-  background: linear-gradient(135deg, #f1c40f, #e67e22, #9b59b6);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  margin: 0;
-  letter-spacing: 4px;
-}
-
-.subtitle {
-  color: #6060a0;
-  margin: 8px 0 0;
-  font-size: 14px;
-  letter-spacing: 3px;
-}
-
-.department {
   margin-bottom: 40px;
 }
 
-.deptName {
-  font-size: 20px;
+.title {
+  font-size: 30px;
   font-weight: 700;
-  color: #a0a0d8;
-  margin: 0 0 20px;
+  color: var(--text);
+  margin: 0;
+  letter-spacing: 1px;
+}
+
+.subtitle {
+  color: var(--text-muted);
+  margin: 6px 0 0;
+  font-size: 14px;
+  letter-spacing: 1px;
+}
+
+.department {
+  margin-bottom: 36px;
+}
+
+.deptName {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 16px;
   display: flex;
   align-items: center;
-  gap: 10px;
-  letter-spacing: 2px;
+  gap: 8px;
 }
 
 .deptIcon {
-  font-size: 18px;
+  color: var(--accent);
+  display: inline-flex;
 }
 
 .teamGrid {
@@ -62,42 +59,44 @@
 }
 
 .teamCard {
-  background: linear-gradient(135deg, #1e1e35, #2a2a45);
-  border: 1px solid #3a3a5e;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 20px;
   text-decoration: none;
   color: inherit;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
   display: block;
+  box-shadow: var(--shadow);
 }
 
 .teamCard:hover {
-  border-color: #6a6aae;
+  border-color: var(--accent-border);
   transform: translateY(-4px);
-  box-shadow: 0 8px 32px rgba(74, 74, 180, 0.2);
+  box-shadow: var(--shadow-hover);
 }
 
 .teamHeader {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   margin-bottom: 16px;
 }
 
 .teamIcon {
-  font-size: 20px;
+  color: var(--accent);
+  display: inline-flex;
 }
 
 .teamName {
   font-size: 16px;
   font-weight: 700;
-  color: #c0c0e8;
+  color: var(--text);
 }
 
 .teamStats {
   display: flex;
-  gap: 16px;
+  gap: 20px;
   margin-bottom: 16px;
 }
 
@@ -110,12 +109,12 @@
 .statValue {
   font-size: 20px;
   font-weight: 700;
-  color: #f1c40f;
+  color: var(--accent);
 }
 
 .statLabel {
   font-size: 10px;
-  color: #6060a0;
+  color: var(--text-muted);
   letter-spacing: 1px;
 }
 
@@ -126,10 +125,10 @@
 }
 
 .memberChip {
-  background: rgba(74, 74, 180, 0.2);
-  border: 1px solid #3a3a6e;
-  border-radius: 4px;
+  background: var(--accent-bg);
+  border: 1px solid var(--accent-border);
+  border-radius: 6px;
   padding: 2px 8px;
   font-size: 11px;
-  color: #8080c0;
+  color: var(--accent);
 }

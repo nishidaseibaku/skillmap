@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { useCollection } from '../hooks/useFirestore';
+import Icon from '../components/Icon';
 import styles from './DepartmentPage.module.css';
 
 export default function DepartmentPage() {
@@ -21,7 +22,7 @@ export default function DepartmentPage() {
         return (
           <div key={dept.id} className={styles.department}>
             <h2 className={styles.deptName}>
-              <span className={styles.deptIcon}>⚔</span>
+              <span className={styles.deptIcon}><Icon name="department" size={18} /></span>
               {dept.name}
             </h2>
             <div className={styles.teamGrid}>
@@ -30,7 +31,7 @@ export default function DepartmentPage() {
                 return (
                   <Link key={team.id} to={`/team/${team.id}`} className={styles.teamCard}>
                     <div className={styles.teamHeader}>
-                      <span className={styles.teamIcon}>🛡</span>
+                      <span className={styles.teamIcon}><Icon name="team" size={18} /></span>
                       <span className={styles.teamName}>{team.name}</span>
                     </div>
                     <div className={styles.teamStats}>

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { fetchEmployees } from '../api/masterApi';
 import { fetchOrgMasters, buildOrgPlan } from '../api/orgSync';
 import { useCollection, setDocument, deleteDocument } from '../hooks/useFirestore';
+import Icon from './Icon';
 import styles from './MasterSync.module.css';
 
 /**
@@ -85,10 +86,11 @@ export default function MasterSync() {
         disabled={status === 'loading'}
         title="社員マスタから同期"
       >
-        {status === 'idle' && '🔄 マスタ同期'}
+        <Icon name="refresh" size={15} className={status === 'loading' ? styles.spin : undefined} />
+        {status === 'idle' && 'マスタ同期'}
         {status === 'loading' && '同期中...'}
-        {status === 'done' && '✓ 完了'}
-        {status === 'error' && '✗ エラー'}
+        {status === 'done' && '完了'}
+        {status === 'error' && 'エラー'}
       </button>
       {message && status !== 'idle' && <span className={styles.msg}>{message}</span>}
     </div>

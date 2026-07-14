@@ -9,20 +9,23 @@
 }
 
 .btn {
-  background: #1e1e35;
-  border: 1px solid #3a3a5e;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
   border-radius: 8px;
   padding: 8px 14px;
-  color: #6060a0;
+  color: var(--text);
   cursor: pointer;
-  font-size: 12px;
-  font-family: inherit;
+  font-size: 13px;
+  box-shadow: var(--shadow);
   transition: all 0.2s;
 }
 
 .btn:hover:not(:disabled) {
-  border-color: #5a5a9e;
-  color: #a0a0d8;
+  border-color: var(--accent-border);
+  color: var(--accent);
 }
 
 .btn:disabled {
@@ -30,26 +33,35 @@
 }
 
 .loading {
-  color: #f1c40f;
-  border-color: #f1c40f;
+  color: var(--accent);
+  border-color: var(--accent-border);
 }
 
 .done {
-  color: #2ecc71;
-  border-color: #2ecc71;
+  color: var(--success);
+  border-color: #a9dcc9;
 }
 
 .error {
-  color: #e74c3c;
-  border-color: #e74c3c;
+  color: var(--danger);
+  border-color: #edbcbc;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
 }
 
 .msg {
-  background: rgba(30, 30, 53, 0.95);
-  border: 1px solid #3a3a5e;
-  border-radius: 6px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   padding: 6px 10px;
-  color: #a0a0d8;
+  color: var(--text-muted);
   font-size: 12px;
   max-width: 260px;
+  box-shadow: var(--shadow);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useDocument, useCollection, updateDocument } from '../hooks/useFirestore';
 import SkillTree from '../components/SkillTree';
+import Icon from '../components/Icon';
 import styles from './TeamPage.module.css';
 
 export default function TeamPage() {
@@ -28,7 +29,7 @@ export default function TeamPage() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <Link to="/" className={styles.back}>← 部門一覧</Link>
+        <Link to="/" className={styles.back}><Icon name="back" size={16} /> 部門一覧</Link>
         <div className={styles.viewToggle}>
           <button
             className={`${styles.toggleBtn} ${view === 'member' ? styles.active : ''}`}
@@ -39,13 +40,13 @@ export default function TeamPage() {
             onClick={() => setView('overview')}
           >チーム概観</button>
           <Link to={`/team/${teamId}/manage`} className={styles.toggleBtn}>
-            ⚙ 管理
+            <Icon name="settings" size={15} /> 管理
           </Link>
         </div>
       </div>
 
       <h1 className={styles.teamTitle}>
-        <span>🛡</span> {team.name}
+        <span className={styles.teamTitleIcon}><Icon name="team" size={20} /></span> {team.name}
       </h1>
 
       {view === 'member' && (

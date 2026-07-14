@@ -1,14 +1,17 @@
 import { useState } from 'react';
 import styles from './SkillNode.module.css';
 
-const LEVEL_COLORS = ['#2a2a3e', '#4a90d9', '#9b59b6', '#e67e22', '#f1c40f'];
+const LEVEL_COLORS = ['#d7dbe4', '#378add', '#7f77dd', '#ba7517', '#e5a800'];
+const LEVEL_TEXT = ['#aab2c0', '#185fa5', '#534ab7', '#854f0b', '#8a6300'];
+const LEVEL_BG = ['#fbfcfe', '#f4f8fe', '#f6f4fd', '#fdf7ee', '#fdf6dd'];
+const LEVEL_BORDER = ['#e4e8f0', '#d7e3f5', '#d9d5f3', '#f2ddc0', '#f0d97a'];
 const LEVEL_LABELS = ['未習得', 'Lv.1', 'Lv.2', 'Lv.3', 'Lv.4'];
 const LEVEL_GLOWS = [
   'none',
-  '0 0 8px #4a90d9, 0 0 16px #4a90d980',
-  '0 0 8px #9b59b6, 0 0 16px #9b59b680',
-  '0 0 8px #e67e22, 0 0 16px #e67e2280',
-  '0 0 12px #f1c40f, 0 0 24px #f1c40f80',
+  '0 1px 3px rgba(30,40,60,.06)',
+  '0 1px 3px rgba(30,40,60,.06)',
+  '0 1px 3px rgba(30,40,60,.06)',
+  '0 0 0 3px rgba(229,168,0,.18)',
 ];
 
 export default function SkillNode({ skill, level, editable, onLevelChange }) {
@@ -28,7 +31,8 @@ export default function SkillNode({ skill, level, editable, onLevelChange }) {
       <div
         className={`${styles.node} ${level > 0 ? styles.active : ''}`}
         style={{
-          backgroundColor: LEVEL_COLORS[level],
+          backgroundColor: LEVEL_BG[level],
+          borderColor: LEVEL_BORDER[level],
           boxShadow: hovered || level > 0 ? LEVEL_GLOWS[level] : 'none',
           cursor: editable ? 'pointer' : 'default',
         }}
@@ -39,12 +43,12 @@ export default function SkillNode({ skill, level, editable, onLevelChange }) {
             <span
               key={i}
               className={`${styles.orb} ${i <= level ? styles.orbFilled : ''}`}
-              style={{ backgroundColor: i <= level ? LEVEL_COLORS[level] : '#1a1a2e' }}
+              style={{ backgroundColor: i <= level ? LEVEL_COLORS[level] : '#eceef3' }}
             />
           ))}
         </div>
         <div className={styles.skillName}>{skill.name}</div>
-        <div className={styles.levelLabel} style={{ color: LEVEL_COLORS[level] }}>
+        <div className={styles.levelLabel} style={{ color: LEVEL_TEXT[level] }}>
           {LEVEL_LABELS[level]}
         </div>
       </div>
@@ -55,10 +59,10 @@ export default function SkillNode({ skill, level, editable, onLevelChange }) {
             <button
               key={l}
               className={`${styles.pickBtn} ${l === level ? styles.pickBtnActive : ''}`}
-              style={{ borderColor: LEVEL_COLORS[l] }}
+              style={{ borderColor: LEVEL_BORDER[l], background: LEVEL_BG[l] }}
               onClick={() => { onLevelChange(l); setShowPicker(false); }}
             >
-              <span style={{ color: LEVEL_COLORS[l] }}>{LEVEL_LABELS[l]}</span>
+              <span style={{ color: LEVEL_TEXT[l] }}>{LEVEL_LABELS[l]}</span>
             </button>
           ))}
         </div>

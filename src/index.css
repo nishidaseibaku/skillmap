@@ -5,12 +5,40 @@
 }
 
 :root {
-  --bg: #0d0d1a;
-  --surface: #1a1a2e;
-  --border: #2a2a4e;
-  --text: #c0c0e8;
-  --text-muted: #6060a0;
-  --accent: #4a90d9;
+  /* base surfaces */
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #fbfcfe;
+  --border: #e4e8f0;
+  --border-strong: #d3dae6;
+
+  /* text */
+  --text: #1f2733;
+  --text-muted: #6b7688;
+  --text-faint: #aab2c0;
+
+  /* brand accent */
+  --accent: #4361ee;
+  --accent-bg: #eef1fe;
+  --accent-border: #c3ccfb;
+
+  /* feedback */
+  --success: #1d9e75;
+  --success-bg: #e6f5ef;
+  --danger: #d64545;
+  --danger-bg: #fce9e9;
+  --gold: #e5a800;
+
+  /* elevation */
+  --shadow: 0 1px 3px rgba(30, 40, 60, 0.06);
+  --shadow-hover: 0 6px 20px rgba(67, 97, 238, 0.12);
+
+  /* skill levels (playful ramp, tuned for light surfaces) */
+  --lv0: #d7dbe4; --lv0-text: #aab2c0; --lv0-bg: #fbfcfe; --lv0-border: #e4e8f0;
+  --lv1: #378add; --lv1-text: #185fa5; --lv1-bg: #f4f8fe; --lv1-border: #d7e3f5;
+  --lv2: #7f77dd; --lv2-text: #534ab7; --lv2-bg: #f6f4fd; --lv2-border: #d9d5f3;
+  --lv3: #ba7517; --lv3-text: #854f0b; --lv3-bg: #fdf7ee; --lv3-border: #f2ddc0;
+  --lv4: #e5a800; --lv4-text: #8a6300; --lv4-bg: #fdf6dd; --lv4-border: #f0d97a;
 }
 
 html, body {
@@ -26,17 +54,21 @@ html, body {
 }
 
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #3a3a5e;
-  border-radius: 3px;
+  background: #cdd4e0;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #b7c0d0;
 }
 
 button {

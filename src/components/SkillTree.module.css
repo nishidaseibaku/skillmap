@@ -5,21 +5,21 @@
 }
 
 .majorGroup {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid #2a2a4e;
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px 20px;
+  box-shadow: var(--shadow);
 }
 
 .majorLabel {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
-  color: #a0a0d8;
-  text-transform: uppercase;
-  letter-spacing: 2px;
+  color: var(--accent);
+  letter-spacing: 1px;
   margin: 0 0 16px 0;
   padding-bottom: 10px;
-  border-bottom: 1px solid #2a2a4e;
+  border-bottom: 1px solid var(--border);
 }
 
 .minorGroups {
@@ -36,11 +36,11 @@
 
 .minorLabel {
   font-size: 11px;
-  color: #6060a0;
+  color: var(--text-muted);
   writing-mode: vertical-rl;
   text-orientation: mixed;
   padding: 8px 4px;
-  border-right: 1px solid #2a2a4e;
+  border-right: 1px solid var(--border);
   letter-spacing: 2px;
   min-width: 24px;
   text-align: center;
