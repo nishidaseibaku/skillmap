@@ -89,9 +89,9 @@ export default function SettingsPage() {
       </section>
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>チームの所属部門（推定結果）</h2>
+        <h2 className={styles.cardTitle}>チーム一覧</h2>
         <p className={styles.desc}>
-          各チームがどの部門に分類されたかの一覧です。「未分類」は所属を推定する手がかり（両コードを持つ社員）がまだ無いチームです。
+          チームは各部門の画面で、その部門の社員（deptCode一致）が持つ teamCode に基づいて表示されます。ここでは各チームの所属部門（メンバーの deptCode から集計）とメンバー数を確認できます。
         </p>
         <table className={styles.table}>
           <thead>
@@ -99,13 +99,16 @@ export default function SettingsPage() {
           </thead>
           <tbody>
             {teams.map((t) => {
-              const name = deptName(t.departmentId);
-              const count = members.filter((m) => m.teamId === t.id).length;
+              const tm = members.filter((m) => m.teamId === t.id);
+              const deptCodes = [...new Set(tm.map((m) => m.deptCode).filter(Boolean))];
+              const label = deptCodes.length
+                ? deptCodes.map((c) => deptName(`dept_${c}`) || `コード${c}`).join('、')
+                : null;
               return (
                 <tr key={t.id}>
                   <td className={styles.teamCell}>{t.name}</td>
-                  <td>{name || <span className={styles.unclassified}>未分類</span>}</td>
-                  <td>{count} 名</td>
+                  <td>{label || <span className={styles.unclassified}>—</span>}</td>
+                  <td>{tm.length} 名</td>
                 </tr>
               );
             })}

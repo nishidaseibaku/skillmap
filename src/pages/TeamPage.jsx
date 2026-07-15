@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useSearchParams } from 'react-router-dom';
 import { useDocument, useCollection, updateDocument } from '../hooks/useFirestore';
 import SkillTree from '../components/SkillTree';
 import Icon from '../components/Icon';
@@ -7,6 +7,7 @@ import styles from './TeamPage.module.css';
 
 export default function TeamPage() {
   const { teamId } = useParams();
+  const [searchParams] = useSearchParams();
   const { data: team, loading: teamLoading } = useDocument('teams', teamId);
   const { data: allMembers, loading: membersLoading } = useCollection('members');
   const [selectedMemberId, setSelectedMemberId] = useState(null);
@@ -17,6 +18,13 @@ export default function TeamPage() {
 
   if (teamLoading || membersLoading) return <div className={styles.loading}>Loading...</div>;
   if (!team) return <div className={styles.loading}>チームが見つかりません</div>;
+
+  // 戻り先：遷移元の部門(from) → 無ければ所属社員の deptCode から導出
+  const fromDept = searchParams.get('from');
+  const derivedDept = members.find(m => m.deptCode)?.deptCode;
+  const backTo = fromDept
+    ? `/dept/${fromDept}`
+    : derivedDept ? `/dept/dept_${derivedDept}` : '/settings';
 
   const skills = team.skills || [];
 
@@ -29,7 +37,7 @@ export default function TeamPage() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <Link to={`/dept/${team.departmentId || 'unclassified'}`} className={styles.back}><Icon name="back" size={16} /> 部門へ戻る</Link>
+        <Link to={backTo} className={styles.back}><Icon name="back" size={16} /> 部門へ戻る</Link>
         <div className={styles.viewToggle}>
           <button
             className={`${styles.toggleBtn} ${view === 'member' ? styles.active : ''}`}
