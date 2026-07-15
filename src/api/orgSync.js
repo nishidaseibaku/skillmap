@@ -73,12 +73,12 @@ export function buildOrgPlan({
   for (const it of teamItems) {
     const code = it?.values?.code != null ? String(it.values.code) : null;
     if (!code) continue;
-    const parent = it.values.parentDeptCode != null ? String(it.values.parentDeptCode) : null;
     const id = teamIdOf(code);
     teams.push({
       id,
+      code,
       name: it.values.name || code,
-      departmentId: parent ? deptIdOf(parent) : null,
+      departmentId: null, // 下で社員から推定
       skills: teamsById.get(id)?.skills ?? [], // スキル定義を保持
     });
   }
@@ -86,6 +86,8 @@ export function buildOrgPlan({
   // --- 社員 ---
   const memberUpserts = [];
   const fetchedIds = new Set();
+  // teamCode -> { deptCode: 件数 } 部門推定用の投票箱
+  const deptVotes = new Map();
 
   for (const emp of employees) {
     if (emp.status === 'deleted') continue; // 下の delete 処理で除去
@@ -94,8 +96,14 @@ export function buildOrgPlan({
     const deptCode = emp?.custom?.[DEPT_KEY] ? String(emp.custom[DEPT_KEY]) : null;
     const teamCode = emp?.custom?.[TEAM_KEY] ? String(emp.custom[TEAM_KEY]) : null;
 
+    // チームの所属部門を推定：teamCode ごとに社員の deptCode を集計
+    if (teamCode && deptCode) {
+      if (!deptVotes.has(teamCode)) deptVotes.set(teamCode, new Map());
+      const box = deptVotes.get(teamCode);
+      box.set(deptCode, (box.get(deptCode) || 0) + 1);
+    }
+
     // 所属はマスタの teamCode を正とする。空なら「未所属」。
-    // 擬似チームは作らない（チームは department-teams マスタ由来のみ）。
     const teamId = teamCode ? teamIdOf(teamCode) : null;
     const prev = membersById.get(emp.id);
 
@@ -114,6 +122,21 @@ export function buildOrgPlan({
         syncedAt: new Date().toISOString(),
       },
     });
+  }
+
+  // チームの所属部門を多数決で確定（手がかりが無ければ null=未分類）
+  const deptIdSet = new Set(departments.map((d) => d.id));
+  for (const team of teams) {
+    const box = deptVotes.get(team.code);
+    if (!box || box.size === 0) continue;
+    let bestCode = null;
+    let bestN = -1;
+    for (const [code, n] of box) {
+      if (n > bestN) { bestN = n; bestCode = code; }
+    }
+    const candidate = bestCode ? deptIdOf(bestCode) : null;
+    // 対応する部門がマスタに存在する場合のみ割り当て
+    if (candidate && deptIdSet.has(candidate)) team.departmentId = candidate;
   }
 
   // 取得スコープ（表示ON）から外れた既存社員はローカルからも削除

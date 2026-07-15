@@ -29,7 +29,7 @@ export default function TeamPage() {
   return (
     <div className={styles.page}>
       <div className={styles.topBar}>
-        <Link to="/" className={styles.back}><Icon name="back" size={16} /> 部門一覧</Link>
+        <Link to={`/dept/${team.departmentId || 'unclassified'}`} className={styles.back}><Icon name="back" size={16} /> 部門へ戻る</Link>
         <div className={styles.viewToggle}>
           <button
             className={`${styles.toggleBtn} ${view === 'member' ? styles.active : ''}`}
