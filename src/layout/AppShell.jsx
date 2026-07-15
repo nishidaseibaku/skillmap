@@ -6,9 +6,11 @@ import styles from './AppShell.module.css';
 export default function AppShell() {
   const { data: departments } = useCollection('departments');
   const { data: teams } = useCollection('teams');
+  const { data: members } = useCollection('members');
 
   const deptIds = new Set(departments.map((d) => d.id));
   const hasUnclassified = teams.some((t) => !t.departmentId || !deptIds.has(t.departmentId));
+  const unassignedCount = members.filter((m) => !m.teamId).length;
 
   const sorted = [...departments].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
 
@@ -46,6 +48,14 @@ export default function AppShell() {
         <div className={styles.spacer} />
 
         <nav className={styles.nav}>
+          <NavLink
+            to="/unassigned"
+            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
+          >
+            <Icon name="team" size={16} />
+            <span>未所属メンバー</span>
+            {unassignedCount > 0 && <span className={styles.badge}>{unassignedCount}</span>}
+          </NavLink>
           <NavLink
             to="/settings"
             className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
