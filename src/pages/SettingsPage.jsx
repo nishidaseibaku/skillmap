@@ -1,122 +1,89 @@
-import { fetchEmployees } from '../api/masterApi';
-import { fetchOrgMasters, buildOrgPlan } from '../api/orgSync';
-import { useCollection, setDocument, deleteDocument } from '../hooks/useFirestore';
 import { useState } from 'react';
+import { httpsCallable } from 'firebase/functions';
+import { functions } from '../firebase';
+import { useDoc } from '../hooks/useFirestore';
 import Icon from '../components/Icon';
 import styles from './SettingsPage.module.css';
 
+/** 設定。マスタ同期の実行と、同期状態の表示 */
 export default function SettingsPage() {
-  const { data: members } = useCollection('members');
-  const { data: teams } = useCollection('teams');
-  const { data: departments } = useCollection('departments');
-  const [status, setStatus] = useState('idle');
-  const [message, setMessage] = useState('');
+  const syncMeta = useDoc('meta/sync');
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null);
 
-  const deptName = (id) => departments.find((d) => d.id === id)?.name || null;
-
-  const handleSync = async () => {
-    if (!confirm('社員マスタから最新情報を取り込み、部門・チームを再構成しますか？')) return;
-    setStatus('loading');
-    setMessage('マスタAPIに問い合わせ中...');
+  const runSync = async () => {
+    setBusy(true);
+    setError(null);
+    setResult(null);
     try {
-      const [{ employees }, orgMasters] = await Promise.all([
-        fetchEmployees({ includeInactive: false }),
-        fetchOrgMasters(),
-      ]);
-      const plan = buildOrgPlan({
-        employees,
-        deptItems: orgMasters.deptItems,
-        teamItems: orgMasters.teamItems,
-        existingDepartments: departments,
-        existingTeams: teams,
-        existingMembers: members,
-      });
-
-      setMessage('Firestore に反映中...');
-      for (const dept of plan.departments) {
-        const { id, ...data } = dept;
-        await setDocument('departments', id, data);
-      }
-      for (const team of plan.teams) {
-        const { id, ...data } = team;
-        await setDocument('teams', id, data);
-      }
-      for (const { id, data } of plan.memberUpserts) {
-        await setDocument('members', id, data);
-      }
-      for (const id of plan.memberDeletes) await deleteDocument('members', id);
-      for (const id of plan.teamDeletes) await deleteDocument('teams', id);
-      for (const id of plan.departmentDeletes) await deleteDocument('departments', id);
-
-      setStatus('done');
-      setMessage(`同期完了：${plan.memberUpserts.length}名 / ${plan.departments.length}部門 / ${plan.teams.length}チーム`);
+      const call = httpsCallable(functions, 'syncMasters');
+      const res = await call();
+      setResult(res.data.summary);
     } catch (e) {
-      console.error(e);
-      setStatus('error');
-      setMessage(e?.message || '同期に失敗しました');
+      setError(e.message || '同期に失敗しました');
+    } finally {
+      setBusy(false);
     }
   };
 
-  const unassignedCount = members.filter((m) => !m.teamId).length;
+  const lastSyncAt = syncMeta?.lastSyncAt?.toDate?.();
 
   return (
-    <div className={styles.page}>
-      <h1 className={styles.title}>設定</h1>
+    <div>
+      <header className={styles.header}>
+        <h1 className={styles.title}>設定</h1>
+      </header>
 
       <section className={styles.card}>
-        <div className={styles.cardHead}>
-          <h2 className={styles.cardTitle}>マスタ同期</h2>
-          <button
-            className={`${styles.syncBtn} ${styles[status]}`}
-            onClick={handleSync}
-            disabled={status === 'loading'}
-          >
-            <Icon name="refresh" size={15} className={status === 'loading' ? styles.spin : undefined} />
-            {status === 'loading' ? '同期中...' : 'マスタ同期'}
-          </button>
-        </div>
+        <h2 className={styles.cardTitle}>
+          <Icon name="sync" size={18} />
+          マスタ同期
+        </h2>
         <p className={styles.desc}>
-          社員マスタから在籍社員（表示ON）を取り込み、部門・チーム・所属を再構成します。
-          チームの所属部門は社員の deptCode / teamCode から推定します。
+          master-manager から部門・チーム・社員を取り込みます。組織構成はマスタが正であり、
+          マスタに無い部門・チーム・社員はこのアプリからも削除されます
+          （チームのスキル定義と各メンバーのスキルレベルは保持されます）。
         </p>
-        {message && <p className={`${styles.msg} ${styles[status]}`}>{message}</p>}
-        <div className={styles.counts}>
-          <span>{members.length} 名</span>
-          <span>{departments.length} 部門</span>
-          <span>{teams.length} チーム</span>
-          <span>未所属 {unassignedCount} 名</span>
-        </div>
+        <button className={styles.syncButton} onClick={runSync} disabled={busy}>
+          <Icon name="sync" size={16} />
+          {busy ? '同期中…' : 'マスタ同期を実行'}
+        </button>
+
+        {lastSyncAt && (
+          <p className={styles.lastSync}>最終同期: {lastSyncAt.toLocaleString('ja-JP')}</p>
+        )}
+
+        {result && (
+          <div className={styles.result}>
+            <div className={styles.resultRow}>
+              <span>部門</span>
+              <span>{result.departments.synced} 件（削除 {result.departments.deleted}）</span>
+            </div>
+            <div className={styles.resultRow}>
+              <span>チーム</span>
+              <span>{result.teams.synced} 件（削除 {result.teams.deleted}）</span>
+            </div>
+            <div className={styles.resultRow}>
+              <span>社員</span>
+              <span>{result.members.synced} 名（削除 {result.members.deleted}）</span>
+            </div>
+          </div>
+        )}
+        {error && <p className={styles.error}>{error}</p>}
       </section>
 
       <section className={styles.card}>
-        <h2 className={styles.cardTitle}>チーム一覧</h2>
-        <p className={styles.desc}>
-          チームは各部門の画面で、その部門の社員（deptCode一致）が持つ teamCode に基づいて表示されます。ここでは各チームの所属部門（メンバーの deptCode から集計）とメンバー数を確認できます。
-        </p>
-        <table className={styles.table}>
-          <thead>
-            <tr><th>チーム</th><th>所属部門</th><th>メンバー</th></tr>
-          </thead>
-          <tbody>
-            {teams.map((t) => {
-              const tm = members.filter((m) => m.teamId === t.id);
-              const deptCodes = [...new Set(tm.map((m) => m.deptCode).filter(Boolean))];
-              const label = deptCodes.length
-                ? deptCodes.map((c) => deptName(`dept_${c}`) || `コード${c}`).join('、')
-                : null;
-              return (
-                <tr key={t.id}>
-                  <td className={styles.teamCell}>{t.name}</td>
-                  <td>{label || <span className={styles.unclassified}>—</span>}</td>
-                  <td>{tm.length} 名</td>
-                </tr>
-              );
-            })}
-            {teams.length === 0 && (
-              <tr><td colSpan={3} className={styles.emptyRow}>チームがありません。マスタ同期を実行してください。</td></tr>
-            )}
-          </tbody>
-        </table>
+        <h2 className={styles.cardTitle}>
+          <Icon name="building" size={18} />
+          データの取り扱い
+        </h2>
+        <ul className={styles.notes}>
+          <li>部門・チーム・社員の構成は master-manager（マスタ）で管理します。</li>
+          <li>チームの所属部門は、チームマスタの「所属部門」列から取得します。</li>
+          <li>社員のチーム割当は、社員マスタの「チーム」列から取得します。</li>
+          <li>スキル定義とスキルレベルは、このアプリ固有のデータとして Firestore に保存します。</li>
+        </ul>
       </section>
     </div>
   );

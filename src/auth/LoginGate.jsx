@@ -4,50 +4,49 @@ import { signInWithMicrosoft } from '../firebase';
 import Icon from '../components/Icon';
 import styles from './LoginGate.module.css';
 
+/** 未ログインならログイン画面を表示し、ログイン済みならアプリ本体を出す */
 export default function LoginGate({ children }) {
   const { user, loading } = useAuth();
   const [error, setError] = useState(null);
-  const [signingIn, setSigningIn] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  if (loading) {
+    return <div className={styles.screen}>読み込み中…</div>;
+  }
+
+  if (user) return children;
 
   const handleLogin = async () => {
+    setBusy(true);
     setError(null);
-    setSigningIn(true);
     try {
       await signInWithMicrosoft();
     } catch (e) {
-      // ポップアップを閉じただけの場合はエラー表示しない
-      if (e?.code !== 'auth/popup-closed-by-user' && e?.code !== 'auth/cancelled-popup-request') {
-        console.error(e);
-        setError('ログインに失敗しました。もう一度お試しください。');
+      if (e?.code !== 'auth/popup-closed-by-user') {
+        setError('ログインに失敗しました。社内アカウントでお試しください。');
       }
     } finally {
-      setSigningIn(false);
+      setBusy(false);
     }
   };
 
-  if (loading) {
-    return (
-      <div className={styles.wrapper}>
-        <div className={styles.spinner} />
-      </div>
-    );
-  }
-
-  if (!user) {
-    return (
-      <div className={styles.wrapper}>
-        <div className={styles.card}>
-          <div className={styles.logo}><Icon name="spark" size={30} strokeWidth={1.6} /></div>
-          <h1 className={styles.title}>スキルマップ</h1>
-          <p className={styles.subtitle}>社内Microsoftアカウントでログインしてください</p>
-          <button className={styles.loginBtn} onClick={handleLogin} disabled={signingIn}>
-            {signingIn ? 'ログイン中...' : 'Microsoft アカウントでログイン'}
-          </button>
-          {error && <p className={styles.error}>{error}</p>}
+  return (
+    <div className={styles.screen}>
+      <div className={styles.card}>
+        <div className={styles.logo}>
+          <Icon name="sparkle" size={28} />
         </div>
+        <h1 className={styles.title}>スキルマップ</h1>
+        <p className={styles.desc}>
+          部門・チーム・個人の人材育成状況を管理します。
+          <br />
+          社内の Microsoft アカウントでログインしてください。
+        </p>
+        <button className={styles.button} onClick={handleLogin} disabled={busy}>
+          {busy ? 'ログイン中…' : 'Microsoft アカウントでログイン'}
+        </button>
+        {error && <p className={styles.error}>{error}</p>}
       </div>
-    );
-  }
-
-  return children;
+    </div>
+  );
 }

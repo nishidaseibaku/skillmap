@@ -1,54 +1,28 @@
-import { useState, useEffect } from 'react';
-import {
-  collection, doc, onSnapshot,
-  setDoc as _setDoc, updateDoc as _updateDoc,
-  deleteDoc as _deleteDoc, addDoc as _addDoc,
-} from 'firebase/firestore';
+import { useEffect, useState } from 'react';
+import { collection, doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../firebase';
 
-export function useCollection(col) {
-  const [data, setData] = useState([]);
-  const [loading, setLoading] = useState(true);
+/** コレクションを購読して [{id, ...data}] を返す。読込中は null */
+export function useCollection(path) {
+  const [docs, setDocs] = useState(null);
+  useEffect(
+    () =>
+      onSnapshot(collection(db, path), (snap) =>
+        setDocs(snap.docs.map((d) => ({ id: d.id, ...d.data() }))),
+      ),
+    [path],
+  );
+  return docs;
+}
 
+/** 単一ドキュメントを購読する。読込中は undefined、不存在は null */
+export function useDoc(path) {
+  const [data, setData] = useState(undefined);
   useEffect(() => {
-    const unsub = onSnapshot(collection(db, col), (snap) => {
-      setData(snap.docs.map(d => ({ id: d.id, ...d.data() })));
-      setLoading(false);
-    });
-    return unsub;
-  }, [col]);
-
-  return { data, loading };
-}
-
-export function useDocument(col, id) {
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!id) { setLoading(false); return; }
-    const unsub = onSnapshot(doc(db, col, id), (snap) => {
-      setData(snap.exists() ? { id: snap.id, ...snap.data() } : null);
-      setLoading(false);
-    });
-    return unsub;
-  }, [col, id]);
-
-  return { data, loading };
-}
-
-export function updateDocument(col, id, data) {
-  return _updateDoc(doc(db, col, id), data);
-}
-
-export function setDocument(col, id, data) {
-  return _setDoc(doc(db, col, id), data);
-}
-
-export function deleteDocument(col, id) {
-  return _deleteDoc(doc(db, col, id));
-}
-
-export function addDocument(col, data) {
-  return _addDoc(collection(db, col), data);
+    const segments = path.split('/');
+    return onSnapshot(doc(db, ...segments), (snap) =>
+      setData(snap.exists() ? { id: snap.id, ...snap.data() } : null),
+    );
+  }, [path]);
+  return data;
 }

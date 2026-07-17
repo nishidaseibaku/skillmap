@@ -14,8 +14,8 @@ https://skill-map-27189.web.app
 - RPGスキルツリー風UI（レベルに応じてノードが発光）
 - スキル・メンバーのCRUD管理画面
 - **Microsoft SSO ログイン**（社内テナント限定）
-- **社員マスタ連携**（master-manager API から社員情報を取込・同期）
-- **部門／チームの自動生成**（社員の deptCode から部門マスタを照合し、チームを自動構成・社員を自動割当）
+- **マスタ同期**（master-manager 配信APIから部門・チーム・社員をサーバー側で一括取込）
+- **組織構成はマスタが正**（チームの所属部門はチームマスタの「所属部門」列、社員の割当は社員マスタの「チーム」列から取得）
 
 ## 技術スタック
 
@@ -32,14 +32,15 @@ https://skill-map-27189.web.app
 
 ## マスタ連携の設計原則
 
-master-manager の仕様に準拠し、以下を厳守する。
+master-manager の仕様（2026-07 API大改定後）に準拠し、以下を厳守する。
 
+- **全マスタ統一形式** — 配信APIは `GET /v1/masters`（定義一覧）と `GET /v1/masters/{id}/items`（項目、`nextCursor` ページング）のみ。社員も組み込みマスタ `employees` として同じ形式で取得する（旧 `/v1/employees` は廃止）
 - **社員キー（id）は不変** — Firestore の `members` ドキュメントIDに社員のUUIDを使用
 - **氏名・メール等の属性はマスタが正** — 同期のたびに上書きし、ローカルはキャッシュのみ
 - **APIキーはサーバー側のみ** — Cloud Functions の Secret に格納し、クライアントには一切出さない
-- **配信APIはサーバー経由でのみ呼ぶ** — フロントは Callable Function を介して間接的に取得
-- **組織構成はマスタが正** — 部門は `departments` マスタ、チームは `department-teams` マスタから取得。社員は `custom.teamCode`（マスタの `code`）で所属チームに割当。`teamCode` 未設定の社員は「未所属」。マスタに無い部門・チーム・表示OFF社員は同期時にローカルからも削除。チームの `skills` と社員の `skillLevels`（マスタに存在しないアプリ固有データ）は同期しても保持
-- **部門↔チームの対応は表示時に導出** — チームマスタは `code`/`name` のみで親部門を持たない。左サイドバーの項目は部門マスタそのまま。各部門の画面では「その部門の社員（`deptCode` 一致）が持つ `teamCode`」からチームを取り出して表示する（チームに所属部門を保存しない）。`teamCode` 未設定の社員は「未所属メンバー」に表示
+- **同期はサーバー側で完結** — フロントは Callable `syncMasters` を呼ぶだけ。Functions が配信APIから取得し Admin SDK で Firestore に直接書き込む（データ本体はクライアントを経由しない）
+- **組織構成はマスタが正** — 部門は `departments`、チームは `department-teams` マスタから取得。**チームの所属部門はチームマスタの `parentDeptCode` 列（部門への masterRef）で直接配信される**。社員は `values` 直下の `deptCode`／`teamCode` で割当（旧 `custom.` ネストは廃止）。`teamCode` 未設定の社員は「未所属メンバー」に表示。マスタに無い部門・チーム・社員は同期時にローカルからも削除。チームの `skills` と社員の `skillLevels`（アプリ固有データ）は同期しても保持
+- **ページングは `nextCursor` で終端判定** — 空ページでも `nextCursor` が返ることがあるため、「返却件数 < limit」では判定しない
 
 ## アーキテクチャ
 
@@ -69,7 +70,7 @@ graph TB
         FS["Firestore Database"]
         FBRULES["Firestore Rules"]
         AUTH["Firebase Auth\n(Microsoft SSO)"]
-        FUNC["Cloud Functions\n(master-manager プロキシ)"]
+        FUNC["Cloud Functions\n(マスタ同期・プロキシ)"]
     end
 
     subgraph EXTERNAL["外部サービス"]
@@ -92,8 +93,9 @@ graph TB
     APP <-->|"Firestore SDK (リアルタイム同期)"| FS
     APP <-->|"ログイン"| AUTH
     AUTH <-->|"OIDC"| ENTRA
-    APP -->|"Callable"| FUNC
+    APP -->|"Callable (syncMasters)"| FUNC
     FUNC -->|"IDトークン + X-API-Key"| MM
+    FUNC -->|"Admin SDK (同期書き込み)"| FS
     FBRULES -->|"アクセス制御 (認証必須)"| FS
 ```
 
@@ -179,13 +181,23 @@ npx firebase deploy --only functions
 ```
 
 ### 5. サービスアカウントの認可
-master-manager 管理者に、Functions のサービスアカウント
-（`skill-map-27189@appspot.gserviceaccount.com`）への呼び出し許可付与を依頼する。
+master-manager 管理者に、Functions の実行サービスアカウント
+（`216677182386-compute@developer.gserviceaccount.com`）への呼び出し許可付与を依頼する。
 
-### 6. 社員の取込
-アプリにログイン後、画面右下の「🔄 マスタ同期」を実行すると、
-社員の取込・部門/チームの自動生成・社員の自動割当がまとめて行われる。
-`deptCode` を持たない社員のみ、各チームの管理画面から手動で割り当てる。
+### 6. Functions に Firestore への書き込み権限を付与
+マスタ同期は Functions が Admin SDK で Firestore に直接書き込むため、
+実行サービスアカウントに `roles/datastore.user` が必要（このプロジェクトでは付与済み）。
+
+```bash
+gcloud projects add-iam-policy-binding skill-map-27189 \
+  --member "serviceAccount:216677182386-compute@developer.gserviceaccount.com" \
+  --role "roles/datastore.user"
+```
+
+### 7. マスタの取込
+アプリにログイン後、サイドバーの「設定」→「マスタ同期を実行」で
+部門・チーム・社員の取込がまとめて行われる。組織構成（チームの所属部門、
+社員のチーム割当）はすべてマスタ側で管理し、次回同期で反映される。
 
 ---
 
@@ -193,6 +205,7 @@ master-manager 管理者に、Functions のサービスアカウント
 
 | バージョン | 日付 | 変更内容 |
 |-----------|------|---------|
+| v0.8 | 2026-07-17 | master-manager 配信APIの大改定（全マスタ統一形式化）に対応してフロント・Functionsを0から再構築。社員取得を `/v1/masters/employees/items` に移行（`custom.` ネスト廃止）、チームマスタの `parentDeptCode` で部門↔チームを直接紐付け（表示時導出ロジックを廃止）、マスタ同期をサーバー側（Admin SDK）で完結する `syncMasters` Callable に集約、Firestoreデータをリセットして新スキーマで再同期 |
 | v0.7.2 | 2026-07-15 | 部門↔チームの分類を「多数決の推定＋保存」から「表示時に部門所属社員の teamCode から都度導出」へ変更。サイドバーの「未分類」項目を廃止し、部門マスタの数で項目を決定 |
 | v0.7.1 | 2026-07-15 | 左サイドバーに「未所属メンバー」項目（件数バッジ付き）を追加。teamCode 未設定の社員を一覧表示 |
 | v0.7 | 2026-07-15 | 左サイドバー構成に刷新（部門リスト＋設定）。部門↔チームの親子関係をマスタが持たないため、社員の deptCode/teamCode の多数決でチームの所属部門を推定。推定できないチームは「未分類」に表示。マスタ同期を設定画面へ集約 |

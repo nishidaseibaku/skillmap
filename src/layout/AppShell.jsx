@@ -1,60 +1,74 @@
 import { NavLink, Outlet } from 'react-router-dom';
-import { useCollection } from '../hooks/useFirestore';
+import { useAuth } from '../auth/AuthContext';
+import { useData } from '../data/DataContext';
+import { signOutUser } from '../firebase';
 import Icon from '../components/Icon';
 import styles from './AppShell.module.css';
 
+/** 左サイドバー（部門リスト＋未所属＋設定）とメイン領域 */
 export default function AppShell() {
-  const { data: departments } = useCollection('departments');
-  const { data: members } = useCollection('members');
+  const { user } = useAuth();
+  const { loading, departments, unassignedMembers } = useData();
 
-  const unassignedCount = members.filter((m) => !m.teamId).length;
-
-  const sorted = [...departments].sort((a, b) => (a.name || '').localeCompare(b.name || '', 'ja'));
+  const linkClass = ({ isActive }) =>
+    isActive ? `${styles.navItem} ${styles.active}` : styles.navItem;
 
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <div className={styles.brand}>
-          <span className={styles.brandMark}><Icon name="spark" size={18} /></span>
-          スキルマップ
+          <Icon name="sparkle" size={20} />
+          <span>スキルマップ</span>
         </div>
 
         <nav className={styles.nav}>
           <div className={styles.navLabel}>部門</div>
-          {sorted.map((dept) => (
-            <NavLink
-              key={dept.id}
-              to={`/dept/${dept.id}`}
-              className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-            >
-              <Icon name="department" size={16} />
-              <span>{dept.name}</span>
+          {loading && <div className={styles.navHint}>読み込み中…</div>}
+          {!loading && departments.length === 0 && (
+            <div className={styles.navHint}>
+              部門がありません。設定からマスタ同期を実行してください。
+            </div>
+          )}
+          {departments.map((d) => (
+            <NavLink key={d.code} to={`/dept/${d.code}`} className={linkClass}>
+              <Icon name="building" />
+              <span className={styles.navText}>{d.name}</span>
             </NavLink>
           ))}
-        </nav>
 
-        <div className={styles.spacer} />
+          <div className={styles.navDivider} />
 
-        <nav className={styles.nav}>
-          <NavLink
-            to="/unassigned"
-            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-          >
-            <Icon name="team" size={16} />
-            <span>未所属メンバー</span>
-            {unassignedCount > 0 && <span className={styles.badge}>{unassignedCount}</span>}
+          <NavLink to="/unassigned" className={linkClass}>
+            <Icon name="inbox" />
+            <span className={styles.navText}>未所属メンバー</span>
+            {unassignedMembers.length > 0 && (
+              <span className={styles.badge}>{unassignedMembers.length}</span>
+            )}
           </NavLink>
-          <NavLink
-            to="/settings"
-            className={({ isActive }) => `${styles.navItem} ${isActive ? styles.navItemActive : ''}`}
-          >
-            <Icon name="settings" size={16} />
-            <span>設定</span>
+          <NavLink to="/settings" className={linkClass}>
+            <Icon name="gear" />
+            <span className={styles.navText}>設定</span>
           </NavLink>
         </nav>
+
+        <div className={styles.userBar}>
+          <div className={styles.avatar}>{(user?.displayName || '?').charAt(0)}</div>
+          <div className={styles.userInfo}>
+            <div className={styles.userName}>{user?.displayName}</div>
+            <div className={styles.userMail}>{user?.email}</div>
+          </div>
+          <button
+            className={styles.logout}
+            onClick={signOutUser}
+            title="ログアウト"
+            aria-label="ログアウト"
+          >
+            <Icon name="logout" />
+          </button>
+        </div>
       </aside>
 
-      <main className={styles.content}>
+      <main className={styles.main}>
         <Outlet />
       </main>
     </div>

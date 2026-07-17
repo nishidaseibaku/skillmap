@@ -1,76 +1,70 @@
-*, *::before, *::after {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
+/* デザイントークン — 明るいビジネス基調 */
 :root {
-  /* base surfaces */
-  --bg: #f5f7fa;
+  --bg: #f4f6f9;
   --surface: #ffffff;
-  --surface-2: #fbfcfe;
-  --border: #e4e8f0;
-  --border-strong: #d3dae6;
+  --surface-hover: #f8fafc;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
 
-  /* text */
-  --text: #1f2733;
-  --text-muted: #6b7688;
-  --text-faint: #aab2c0;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --text-faint: #94a3b8;
 
-  /* brand accent */
-  --accent: #4361ee;
-  --accent-bg: #eef1fe;
-  --accent-border: #c3ccfb;
+  --accent: #2563eb;
+  --accent-hover: #1d4ed8;
+  --accent-soft: #eff6ff;
+  --accent-border: #bfdbfe;
 
-  /* feedback */
-  --success: #1d9e75;
-  --success-bg: #e6f5ef;
-  --danger: #d64545;
-  --danger-bg: #fce9e9;
-  --gold: #e5a800;
+  --danger: #dc2626;
+  --danger-soft: #fef2f2;
 
-  /* elevation */
-  --shadow: 0 1px 3px rgba(30, 40, 60, 0.06);
-  --shadow-hover: 0 6px 20px rgba(67, 97, 238, 0.12);
+  /* スキルレベルの段階色（0=未習得 → 4=指導できる） */
+  --lv0: #cbd5e1;
+  --lv1: #7dd3fc;
+  --lv2: #38bdf8;
+  --lv3: #2563eb;
+  --lv4: #f59e0b;
+  --lv4-glow: rgba(245, 158, 11, 0.35);
 
-  /* skill levels (playful ramp, tuned for light surfaces) */
-  --lv0: #d7dbe4; --lv0-text: #aab2c0; --lv0-bg: #fbfcfe; --lv0-border: #e4e8f0;
-  --lv1: #378add; --lv1-text: #185fa5; --lv1-bg: #f4f8fe; --lv1-border: #d7e3f5;
-  --lv2: #7f77dd; --lv2-text: #534ab7; --lv2-bg: #f6f4fd; --lv2-border: #d9d5f3;
-  --lv3: #ba7517; --lv3-text: #854f0b; --lv3-bg: #fdf7ee; --lv3-border: #f2ddc0;
-  --lv4: #e5a800; --lv4-text: #8a6300; --lv4-bg: #fdf6dd; --lv4-border: #f0d97a;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.1);
+
+  --sidebar-w: 248px;
 }
 
-html, body {
-  background-color: var(--bg);
-  color: var(--text);
-  font-family: 'Segoe UI', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
-  min-height: 100vh;
-  line-height: 1.5;
+* {
+  box-sizing: border-box;
 }
 
+html,
+body,
 #root {
-  min-height: 100vh;
+  margin: 0;
+  height: 100%;
 }
 
-::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #cdd4e0;
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #b7c0d0;
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Segoe UI', 'Hiragino Sans', 'Yu Gothic UI', system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
 }
 
 button {
-  font-family: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+input,
+select {
+  font: inherit;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
 }

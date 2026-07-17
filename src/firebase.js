@@ -33,8 +33,3 @@ export async function signInWithMicrosoft() {
 export function signOutUser() {
   return signOut(auth);
 }
-
-/** ログイン中ユーザーの Entra オブジェクトID（自システムのユーザーキー） */
-export function getEntraObjectId(user) {
-  return user?.providerData?.find((p) => p.providerId === 'microsoft.com')?.uid || null;
-}

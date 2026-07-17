@@ -1,54 +1,56 @@
-.tree {
+.legend {
   display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.majorGroup {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  padding: 16px 20px;
-  box-shadow: var(--shadow);
-}
-
-.majorLabel {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--accent);
-  letter-spacing: 1px;
-  margin: 0 0 16px 0;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--border);
-}
-
-.minorGroups {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.minorGroup {
-  display: flex;
-  align-items: flex-start;
-  gap: 16px;
-}
-
-.minorLabel {
-  font-size: 11px;
+  flex-wrap: wrap;
+  gap: 4px 16px;
+  margin-bottom: 16px;
+  font-size: 12px;
   color: var(--text-muted);
-  writing-mode: vertical-rl;
-  text-orientation: mixed;
-  padding: 8px 4px;
-  border-right: 1px solid var(--border);
-  letter-spacing: 2px;
-  min-width: 24px;
-  text-align: center;
 }
 
-.skillRow {
+.legendItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--lv0);
+}
+
+.legendDot[data-level='1'] {
+  background: var(--lv1);
+}
+.legendDot[data-level='2'] {
+  background: var(--lv2);
+}
+.legendDot[data-level='3'] {
+  background: var(--lv3);
+}
+.legendDot[data-level='4'] {
+  background: var(--lv4);
+}
+
+.group {
+  margin-bottom: 24px;
+}
+
+.category {
+  margin: 0 0 10px;
+  font-size: 14px;
+  color: var(--text);
+  padding-left: 10px;
+  border-left: 3px solid var(--accent);
+}
+
+.nodes {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
-  align-items: flex-start;
+}
+
+.empty {
+  color: var(--text-muted);
 }
