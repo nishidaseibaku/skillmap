@@ -1,0 +1,13 @@
+rules_version = '2';
+
+// MVP(ローカル専用): 認証は未実装のため読み書きを開放している。本番前に要件定義書 §7 に沿って差し替えること。
+// 証明書は追記専用(既存ファイルの上書き・削除は不可)、サイズは10MBまで。
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /certificates/{personId}/{file} {
+      allow read: if true;
+      allow write: if resource == null && request.resource != null && request.resource.size < 10 * 1024 * 1024;
+      allow delete: if false;
+    }
+  }
+}

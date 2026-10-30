@@ -1,9 +1,25 @@
 rules_version = '2';
+
+// MVP: 認証・ロール制御は未実装のため、このアプリのコレクションだけ読み書きを開放している。
+// 本番の実データを扱う前に要件定義書 §7 に沿って必ず差し替えること。
+// 同じプロジェクトにある他のコレクション(departments / members / teams / meta など)には許可を与えない(既定で拒否)。
+// 設計原則(§4)のうち、物理削除の禁止と、評価・スキルの版の追記専用は今から強制する。
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ログイン済みユーザーのみ読み書き可能（Microsoft SSO 経由）
-    match /{document=**} {
-      allow read, write: if request.auth != null;
+    function isAppCollection(c) {
+      return c in [
+        'persons', 'orgs', 'assignments', 'skills', 'skillVersions',
+        'requirements', 'assessments', 'personLicenses', 'trainings'
+      ];
+    }
+
+    match /{collection}/{doc} {
+      allow read: if isAppCollection(collection);
+      allow create: if isAppCollection(collection);
+      // 評価(assessments)とスキルの版(skillVersions)は上書き不可
+      allow update: if isAppCollection(collection)
+        && collection != 'assessments' && collection != 'skillVersions';
+      allow delete: if false;
     }
   }
 }

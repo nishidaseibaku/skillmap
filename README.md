@@ -1,220 +1,140 @@
 # スキルマップ
 
-部門・チーム・個人の人材育成状況をRPGスキルツリー風UIで管理するWebアプリ。
+個人が持つ能力を「人」に紐づけて管理し、チームごとの適正人数に対する充足状況をマトリクスで確認するWebアプリ。
+人財育成・配置管理システムの MVP（v0.9）。
 
 ## 公開URL
 
 https://skill-map-27189.web.app
 
+> **注意（v0.9）**: 認証は未実装で、このアプリのコレクションは認証なしで読み書きできます。サンプルデータのみを入れてください。実データを扱う前に認証と権限（後述）を実装します。
+> Microsoft SSO・master-manager 連携を持つ旧版（v0.8）はタグ [`legacy-v0.8`](https://github.com/nishidaseibaku/skillmap/tree/legacy-v0.8) に残しています。
+
 ## 機能
 
-- 部門 → チーム → メンバーの階層構造
-- チームごとのスキルリスト（大分類・小分類）
-- メンバーごとのスキルレベル管理（0〜4の4段階）
-- RPGスキルツリー風UI（レベルに応じてノードが発光）
-- スキル・メンバーのCRUD管理画面
-- **Microsoft SSO ログイン**（社内テナント限定）
-- **マスタ同期**（master-manager 配信APIから部門・チーム・社員をサーバー側で一括取込）
-- **組織構成はマスタが正**（チームの所属部門はチームマスタの「所属部門」列、社員の割当は社員マスタの「チーム」列から取得）
+- **チーム画面**: スキル × メンバーの力量マトリクス。セルを押して評価を登録。コアスキル充足率のカード（集計は `teamStats` に追加していく）
+- **スキル管理**（チーム画面内）: スキル名クリックで編集、追加（新規／既存スキル）、チームから外す、適正人数、コア指定、ドラッグ＆ドロップ（↑↓キーも可）で並び替え
+- **人財画面**: 現所属の達成状況、現所属外で保持しているスキル、評価履歴、所属履歴、異動、資格・免許、研修受講履歴、戻るボタン
+- **評価は追記のみ**: 評価日・評価者・根拠を記録。スキルの内容（名称・基準・コア）は変更のたびに版を追記し、基準が変わった後の評価は破線の枠で「旧基準」を示す
+- **異動しても能力は保持**: 旧所属で得たスキル・資格・研修は個人に残る。所属は履歴（終了日）で管理
+- **資格・免許 / 研修受講履歴**: 有効期限の警告、証明書ファイル（Cloud Storage）。更新は新規追加、誤登録は「取り消す」（物理削除しない）
+
+## 設計原則
+
+- スキルの所有者は個人、所属は「現在地」として別管理
+- チームが必要スキルと適正人数を持つ
+- 評価・スキルの版は追記のみ（Firestore ルールで update/delete を禁止）
+- 物理削除はしない（終了日・無効化で管理）
+- 習得判定は全スキル共通でレベル3以上
 
 ## 技術スタック
 
 | 区分 | 技術 |
 |------|------|
-| フロントエンド | React + Vite |
-| データ | Firebase Firestore |
-| 認証 | Firebase Authentication（Microsoft SSO / Entra） |
-| サーバー処理 | Cloud Functions（asia-northeast1） |
-| 外部連携 | master-manager 配信API（社員マスタ） |
+| フロントエンド | React 18 + TypeScript + Vite |
+| データ | Cloud Firestore（Security Rules で追記専用・削除禁止を強制） |
+| ファイル | Cloud Storage（証明書。本番では未有効） |
+| テスト | Vitest（集計・判定ロジック） |
+| Lint | oxlint |
+| ローカル開発 | Firebase Emulator Suite（Firestore / Storage） |
 | ホスティング | Firebase Hosting |
 | コード管理 | GitHub |
 | CI/CD | GitHub Actions（Workload Identity Federation でキーレス認証） |
-
-## マスタ連携の設計原則
-
-master-manager の仕様（2026-07 API大改定後）に準拠し、以下を厳守する。
-
-- **全マスタ統一形式** — 配信APIは `GET /v1/masters`（定義一覧）と `GET /v1/masters/{id}/items`（項目、`nextCursor` ページング）のみ。社員も組み込みマスタ `employees` として同じ形式で取得する（旧 `/v1/employees` は廃止）
-- **社員キー（id）は不変** — Firestore の `members` ドキュメントIDに社員のUUIDを使用
-- **氏名・メール等の属性はマスタが正** — 同期のたびに上書きし、ローカルはキャッシュのみ
-- **APIキーはサーバー側のみ** — Cloud Functions の Secret に格納し、クライアントには一切出さない
-- **同期はサーバー側で完結** — フロントは Callable `syncMasters` を呼ぶだけ。Functions が配信APIから取得し Admin SDK で Firestore に直接書き込む（データ本体はクライアントを経由しない）
-- **組織構成はマスタが正** — 部門は `departments`、チームは `department-teams` マスタから取得。**チームの所属部門はチームマスタの `parentDeptCode` 列（部門への masterRef）で直接配信される**。社員は `values` 直下の `deptCode`／`teamCode` で割当（旧 `custom.` ネストは廃止）。`teamCode` 未設定の社員は「未所属メンバー」に表示。マスタに無い部門・チーム・社員は同期時にローカルからも削除。チームの `skills` と社員の `skillLevels`（アプリ固有データ）は同期しても保持
-- **ページングは `nextCursor` で終端判定** — 空ページでも `nextCursor` が返ることがあるため、「返却件数 < limit」では判定しない
 
 ## アーキテクチャ
 
 ```mermaid
 graph TB
     subgraph LOCAL["ローカル環境"]
-        SRC["src/ (Reactソースコード)"]
+        SRC["src/ (React + TypeScript)"]
         DIST["dist/ (ビルド成果物)"]
-        FBJS["firebase.js (接続設定)"]
-
-        SRC -->|"npm run build (Vite)"| DIST
-        FBJS -->|"Firestore SDK 初期化"| SRC
-
-        subgraph TOOLS["CLIツール"]
-            GIT["git"]
-            GH["gh (GitHub CLI)"]
-            FB["npx firebase (firebase-tools)"]
-        end
-    end
-
-    subgraph GITHUB["GitHub"]
-        REPO["suenaga-gws/skillmap"]
+        EMU["Firebase Emulator<br/>Firestore :8080 / Storage :9199"]
+        SEED["scripts/seed.mjs<br/>サンプルデータ投入"]
+        SRC -->|"npm run build (tsc + Vite)"| DIST
+        SEED -->|"投入"| EMU
+        SRC -->|"npm run dev (開発時のみ)"| EMU
     end
 
     subgraph FIREBASE["Firebase (skill-map-27189)"]
-        HOSTING["Firebase Hosting\nskill-map-27189.web.app"]
-        FS["Firestore Database"]
-        FBRULES["Firestore Rules"]
-        AUTH["Firebase Auth\n(Microsoft SSO)"]
-        FUNC["Cloud Functions\n(マスタ同期・プロキシ)"]
+        HOST["Hosting"]
+        FS[("Cloud Firestore<br/>persons / orgs / assignments / skills / skillVersions<br/>requirements / assessments / personLicenses / trainings")]
+        ST[("Cloud Storage<br/>certificates/ ※未有効")]
+        RULES["Security Rules<br/>追記専用・削除禁止"]
     end
 
-    subgraph EXTERNAL["外部サービス"]
-        ENTRA["Microsoft Entra ID"]
-        MM["master-manager API\n(社員マスタ)"]
-    end
-
-    subgraph BROWSER["ブラウザ (エンドユーザー)"]
-        APP["Webアプリ"]
-    end
-
-    GIT -->|"git push"| REPO
-    GH -->|"認証管理"| REPO
-
-    FB -->|"npx firebase deploy"| HOSTING
-    FB --> FBRULES
-    FB -->|"deploy functions"| FUNC
-
-    HOSTING -->|"配信"| APP
-    APP <-->|"Firestore SDK (リアルタイム同期)"| FS
-    APP <-->|"ログイン"| AUTH
-    AUTH <-->|"OIDC"| ENTRA
-    APP -->|"Callable (syncMasters)"| FUNC
-    FUNC -->|"IDトークン + X-API-Key"| MM
-    FUNC -->|"Admin SDK (同期書き込み)"| FS
-    FBRULES -->|"アクセス制御 (認証必須)"| FS
+    DIST -->|"firebase deploy"| HOST
+    HOST -->|"配信 (SPA)"| BROWSER["ブラウザ"]
+    BROWSER -->|"Firestore SDK"| FS
+    BROWSER -.->|"証明書"| ST
+    RULES --- FS
 ```
 
 ## デプロイシーケンス
 
-master へ push すると、GitHub Actions が Hosting と Firestore ルールを自動デプロイする。
-認証は Workload Identity Federation（GitHub OIDC）で行い、鍵は保存しない。
-
 ```mermaid
 sequenceDiagram
-    participant Dev as 開発者
-    participant GitHub as GitHub
-    participant Actions as GitHub Actions
-    participant WIF as Workload Identity<br/>Federation
-    participant Hosting as Firebase Hosting
-    participant Firestore as Firestore
+    actor Dev as 開発者
+    participant Local as ローカル
+    participant GH as GitHub
+    participant GA as GitHub Actions
+    participant FB as Firebase
 
-    Dev->>GitHub: git push (master)
-    GitHub->>Actions: ワークフロー起動 (deploy.yml)
-    Actions->>Actions: npm ci / npm run build
-    Actions->>WIF: OIDCトークンでSAになりすまし
-    WIF-->>Actions: 短命の認証情報
-    Actions->>Hosting: dist/ をデプロイ
-    Actions->>Firestore: firestore.rules をデプロイ
-    Hosting-->>Dev: 本番反映
-
-    Note over Hosting: https://skill-map-27189.web.app
-```
-
-Functions は変更頻度が低く権限も強いため自動デプロイ対象外。変更時のみローカルから：
-
-```bash
-npx firebase deploy --only functions
+    Dev->>Local: npm run build（.env.production の設定を埋め込む）
+    Dev->>Local: firebase deploy --only hosting,firestore:rules
+    Local->>FB: Hosting / Firestore ルールを反映
+    Dev->>GH: git push (master)
+    GH->>GA: deploy.yml を起動
+    GA->>GA: npm ci → build
+    GA->>FB: Workload Identity Federation で認証し Hosting / ルールを反映
 ```
 
 ## セットアップ
 
+前提: Node.js 20 以上、Java（エミュレーター用）、`firebase-tools`（グローバル）。
+
 ```bash
 npm install
-npm run dev
+npm start      # エミュレーター起動 → サンプルデータ投入 → http://localhost:5173
 ```
+
+個別に動かす場合: `npm run emulators` / `npm run seed`（データを全消去して再投入）/ `npm run dev`。
+`npm run dev` は常にエミュレーターへ接続します（実プロジェクトには接続しません）。
+
+テスト: `npm test`、Lint: `npm run lint`、型チェック: `npx tsc --noEmit`。
 
 ## デプロイ手順
 
-**通常はコードを master に push するだけで自動デプロイされる**（GitHub Actions）。
-
-```bash
-git add .
-git commit -m "変更内容"
-git push   # → Actions が Hosting / Firestore ルールを自動デプロイ
-```
-
-手動でデプロイする場合（Functions 含む全体）：
-
 ```bash
 npm run build
-npx firebase deploy
+firebase deploy --only hosting,firestore:rules --project skill-map-27189
 ```
 
-## 初期セットアップ（SSO / マスタ連携）
+- 本番ビルドは `.env.production`（`VITE_FIREBASE_*`。公開前提のWeb設定のみで秘密情報は入れない）で接続します。
+- `.firebaserc` の既定はエミュレーター用の `demo-skill-map` です。デプロイは必ず `--project` を指定します。
+- master への push でも `.github/workflows/deploy.yml` が Hosting とルールを自動デプロイします。
+- 本番へのサンプルデータ投入: `SEED_TARGET=prod node scripts/seed.mjs`（追記のみ。投入先が空のときだけ実行）。
+- Cloud Storage は本番では未有効のため、証明書のアップロードは使えません（証明書なしで登録できます）。
+- 同じプロジェクトに旧版の Cloud Functions（`syncMasters`）と旧コレクション（`departments` / `members` / `teams` / `meta`）が残っています。このリポジトリのデプロイでは触りません。Firestore ルールは旧コレクションに許可を与えません。
 
-初回のみ必要な手動作業。
+## 今後（未実装）
 
-### 1. Firebase を Blaze プランに変更
-Cloud Functions の利用には従量課金（Blaze）プランが必須。
-Firebase コンソール → 「アップグレード」から変更する。
-
-### 2. Microsoft SSO プロバイダを有効化
-1. Firebase コンソール → Authentication → Sign-in method → Microsoft を有効化
-2. 表示されるリダイレクトURI（`https://skill-map-27189.firebaseapp.com/__/auth/handler`）を控える
-3. master-manager 管理者に上記URIの登録を依頼し、アプリケーションID／シークレットを受領
-4. 受け取ったID／シークレットをコンソールの Microsoft プロバイダ設定に登録
-
-### 3. master-manager API キーを Secret に登録
-```bash
-npx firebase functions:secrets:set MASTER_MANAGER_API_KEY
-# プロンプトに mm_xxxx... を貼り付け
-```
-
-### 4. Cloud Functions をデプロイ
-```bash
-npx firebase deploy --only functions
-```
-
-### 5. サービスアカウントの認可
-master-manager 管理者に、Functions の実行サービスアカウント
-（`216677182386-compute@developer.gserviceaccount.com`）への呼び出し許可付与を依頼する。
-
-### 6. Functions に Firestore への書き込み権限を付与
-マスタ同期は Functions が Admin SDK で Firestore に直接書き込むため、
-実行サービスアカウントに `roles/datastore.user` が必要（このプロジェクトでは付与済み）。
-
-```bash
-gcloud projects add-iam-policy-binding skill-map-27189 \
-  --member "serviceAccount:216677182386-compute@developer.gserviceaccount.com" \
-  --role "roles/datastore.user"
-```
-
-### 7. マスタの取込
-アプリにログイン後、サイドバーの「設定」→「マスタ同期を実行」で
-部門・チーム・社員の取込がまとめて行われる。組織構成（チームの所属部門、
-社員のチーム割当）はすべてマスタ側で管理し、次回同期で反映される。
-
----
+認証（Microsoft サインイン、社内テナント限定）とロール別権限、資格マスタ・期限通知、教育計画、経営ダッシュボード、Excel移行、集計の Cloud Functions 化、適正人数の変更履歴。
 
 ## バージョン履歴
 
-| バージョン | 日付 | 変更内容 |
-|-----------|------|---------|
-| v0.8 | 2026-07-17 | master-manager 配信APIの大改定（全マスタ統一形式化）に対応してフロント・Functionsを0から再構築。社員取得を `/v1/masters/employees/items` に移行（`custom.` ネスト廃止）、チームマスタの `parentDeptCode` で部門↔チームを直接紐付け（表示時導出ロジックを廃止）、マスタ同期をサーバー側（Admin SDK）で完結する `syncMasters` Callable に集約、Firestoreデータをリセットして新スキーマで再同期 |
-| v0.7.2 | 2026-07-15 | 部門↔チームの分類を「多数決の推定＋保存」から「表示時に部門所属社員の teamCode から都度導出」へ変更。サイドバーの「未分類」項目を廃止し、部門マスタの数で項目を決定 |
-| v0.7.1 | 2026-07-15 | 左サイドバーに「未所属メンバー」項目（件数バッジ付き）を追加。teamCode 未設定の社員を一覧表示 |
-| v0.7 | 2026-07-15 | 左サイドバー構成に刷新（部門リスト＋設定）。部門↔チームの親子関係をマスタが持たないため、社員の deptCode/teamCode の多数決でチームの所属部門を推定。推定できないチームは「未分類」に表示。マスタ同期を設定画面へ集約 |
-| v0.6 | 2026-07-14 | UIをライトテーマに刷新（ダーク→明るいビジネス基調、色をCSS変数=デザイントークンに集約、ネオン発光を淡い影に変更）。絵文字を廃止し線画アイコン（Icon コンポーネント）に統一。スキルツリーのオーブ表現は遊び心として維持 |
-| v0.5 | 2026-07-10 | GitHub Actions による CI/CD を追加（PRでlint/build、masterへのpushでHosting・Firestoreルールを自動デプロイ、Workload Identity Federationでキーレス認証） |
-| v0.4.2 | 2026-07-10 | マスタを組織構成の唯一の正に統一（擬似チームを廃止し teamCode 未設定者は未所属、マスタに無い部門・チームは同期時に削除） |
-| v0.4.1 | 2026-07-10 | マスタ連携を実データ構造に整合（部門=departments／チーム=department-teams／社員=deptCode・teamCode で割当）、Cloud Functionsを本番デプロイ、認可をAPIキー単層に簡素化 |
-| v0.4 | 2026-07-10 | Microsoft SSO ログインと社員マスタ連携（Cloud Functions プロキシ）を追加、deptCode から部門・チームを自動生成・社員を自動割当、Firestoreルールを認証必須に強化、サンプルデータを廃止 |
+| 版 | 日付 | 内容 |
+|----|------|------|
+| v0.9 | 2026-10-30 | 人財育成・配置管理の MVP として0から再構築（React + TypeScript、Firestore エミュレーター開発）。チームの力量マトリクス、スキル管理（版管理・並び替え・コア指定）、評価の追記履歴、異動、資格・免許・研修受講履歴、コアスキル充足率カードを実装。旧版（Microsoft SSO・master-manager連携）は未実装のため `legacy-v0.8` に退避。認証なし・サンプルデータのみで暫定公開 |
+| v0.8 | 2026-07-17 | master-manager 配信APIの大改定（全マスタ統一形式化）に対応してフロント・Functionsを0から再構築。社員取得を `/v1/masters/employees/items` に移行、チームマスタの `parentDeptCode` で部門↔チームを直接紐付け、マスタ同期を `syncMasters` Callable に集約（`legacy-v0.8`） |
+| v0.7.2 | 2026-07-15 | 部門↔チームの分類を表示時に部門所属社員の teamCode から都度導出へ変更。「未分類」項目を廃止 |
+| v0.7.1 | 2026-07-15 | 左サイドバーに「未所属メンバー」項目（件数バッジ付き）を追加 |
+| v0.7 | 2026-07-15 | 左サイドバー構成に刷新。部門↔チームの親子関係を多数決で推定。マスタ同期を設定画面へ集約 |
+| v0.6 | 2026-07-14 | UIをライトテーマに刷新、線画アイコンに統一 |
+| v0.5 | 2026-07-10 | GitHub Actions による CI/CD を追加（Workload Identity Federation でキーレス認証） |
+| v0.4.2 | 2026-07-10 | マスタを組織構成の唯一の正に統一 |
+| v0.4.1 | 2026-07-10 | マスタ連携を実データ構造に整合、Cloud Functionsを本番デプロイ |
+| v0.4 | 2026-07-10 | Microsoft SSO ログインと社員マスタ連携を追加、Firestoreルールを認証必須に強化 |
 | v0.3.1 | 2026-07-01 | アーキテクチャ図のCLIツールをローカル環境ブロック内に移動 |
-| v0.3 | 2026-07-01 | データ層を localStorage から Firestore に移行、firebase.js を本番設定に更新 |
+| v0.3 | 2026-07-01 | データ層を localStorage から Firestore に移行 |
 | v0.2 | 2026-07-01 | Firebase Hosting へのデプロイ、GitHub リポジトリ公開 |
 | v0.1 | 2026-07-01 | MVP 初回リリース（React + Vite + RPGスキルツリーUI） |
