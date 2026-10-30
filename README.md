@@ -121,6 +121,7 @@ firebase deploy --only hosting,firestore:rules --project skill-map-27189
 
 | 版 | 日付 | 内容 |
 |----|------|------|
+| v0.9.2 | 2026-10-30 | ファビコンを追加（`public/favicon.svg`。力量マトリクスを濃淡の 3×3 グリッドで表した SVG。ダークモード対応）。`index.html` に `theme-color` も設定 |
 | v0.9.1 | 2026-10-30 | 自動デプロイ（`.github/workflows/deploy.yml`）を削除。デプロイはローカルでビルドして手元から行う運用に統一。CI（lint / build）は維持。CLAUDE.md のデプロイ手順を更新。コードの変更なし |
 | v0.9 | 2026-10-30 | 人財育成・配置管理の MVP として0から再構築（React + TypeScript、Firestore エミュレーター開発）。チームの力量マトリクス、スキル管理（版管理・並び替え・コア指定）、評価の追記履歴、異動、資格・免許・研修受講履歴、コアスキル充足率カードを実装。旧版（Microsoft SSO・master-manager連携）は未実装のため `legacy-v0.8` に退避。認証なし・サンプルデータのみで暫定公開 |
 | v0.8 | 2026-07-17 | master-manager 配信APIの大改定（全マスタ統一形式化）に対応してフロント・Functionsを0から再構築。社員取得を `/v1/masters/employees/items` に移行、チームマスタの `parentDeptCode` で部門↔チームを直接紐付け、マスタ同期を `syncMasters` Callable に集約（`legacy-v0.8`） |
