@@ -26,10 +26,12 @@ npm run build
 git add .
 git commit -m "..."
 git push
-npx firebase deploy --token "..."
+firebase deploy --only hosting,firestore:rules --project skill-map-27189
 ```
 
-トークン発行: `npx firebase login:ci`（プロジェクトディレクトリ内で実行）
+- デプロイは「ローカルでビルドして、手元から `firebase deploy`」を原則とする。GitHub Actions では自動デプロイしない（push してもデプロイされない）。
+- 認証切れ（`credentials are no longer valid`）のときは `firebase login --reauth`。`firebase login:ci` のトークンは使わない。
+- 本番ビルドは `.env.production`（公開前提のWeb設定のみ）で接続する。
 
 ## Firebase プロジェクト
 
